@@ -1,24 +1,29 @@
 package pe.com.practicar.mapper;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import org.springframework.stereotype.Service;
+import pe.com.practicar.business.dto.ZonesDto;
+import pe.com.practicar.repository.model.Zones;
 
-public class ZoneMapper implements Serializable {
+@Service
+public class ZoneMapper {
 
-    private static final long serialVersionUID = 1L;
-
-    private String nombre;
-    private String distrito;
-    private String provincia;
-    private String region;
-    private String pais;
-    private Double latitud;
-    private Double longitud;
-    private Integer nivelSeguridad;
-    private String descripcion;
-    private Boolean activo;
-    private String usuarioCreacion;
-    private String usuarioActualizacion;
-    private LocalDateTime fechaCreacion;
-    private LocalDateTime fechaActualizacion;
+   public ZonesDto convertToZoneResponse(Zones zone) {
+       return ZonesDto.builder()
+               .zoneCode(zone.getId())
+               .names(zone.getName())
+               .districts(zone.getDistrict())
+               .provinces(zone.getProvince())
+               .regions(zone.getRegion())
+               .countrys(zone.getCountry())
+               .latitudes(zone.getLatitude())
+               .longitudes(zone.getLongitude())
+               .securityLevels(zone.getSecurityLevel())
+               .descriptions(zone.getDescription())
+               .actives(zone.getActive())
+               .createdBys(zone.getCreatedBy())
+               .updatedBys(zone.getUpdatedBy())
+               .createdAts(zone.getCreatedAt())
+               .updatedAts(zone.getUpdatedAt())
+               .build();
+   }
 }
