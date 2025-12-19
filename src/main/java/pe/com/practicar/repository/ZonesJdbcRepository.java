@@ -8,5 +8,5 @@ import java.util.List;
 @FunctionalInterface
 public interface ZonesJdbcRepository {
 
-    Mono<List<Zones>> getZones(Integer currentPage, Integer pageSize, String search, Integer zoneCode);
+    Mono<List<Zones>> getZonesPaginated(Integer currentPage, Integer pageSize);
 }
