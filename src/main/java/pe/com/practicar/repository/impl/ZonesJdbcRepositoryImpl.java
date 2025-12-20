@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import pe.com.practicar.repository.model.Zones;
@@ -174,6 +177,77 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
             List<Zones> result = namedParameterJdbcTemplate.query(
                     selectQueryBuilder.toString(),
                     parameters,
+                    BeanPropertyRowMapper.newInstance(Zones.class)
+            );
+            
+            return result.isEmpty() ? null : result.get(0);
+        })
+        .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Zones> createZone(ZoneDatosCreateRequest createRequest) {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource parameters = new MapSqlParameterSource();
+            
+            StringBuilder insertQuery = new StringBuilder();
+            insertQuery.append("INSERT INTO ").append(schema).append(".zonas ")
+                    .append("(nombre, distrito, provincia, region, pais, latitud, longitud, ")
+                    .append("nivelSeguridad, descripcion, activo, usuarioCreacion, fechaCreacion) ")
+                    .append("VALUES ")
+                    .append("(:nombre, :distrito, :provincia, :region, :pais, :latitud, :longitud, ")
+                    .append(":nivelSeguridad, :descripcion, 1, :usuarioCreacion, GETDATE())");
+            
+            parameters.addValue("nombre", createRequest.getNombre());
+            parameters.addValue("distrito", createRequest.getDistrito());
+            parameters.addValue("provincia", createRequest.getProvincia());
+            parameters.addValue("region", createRequest.getRegion());
+            parameters.addValue("pais", createRequest.getPais());
+            parameters.addValue("latitud", createRequest.getLatitud());
+            parameters.addValue("longitud", createRequest.getLongitud());
+            parameters.addValue("nivelSeguridad", createRequest.getNivelSeguridad());
+            parameters.addValue("descripcion", createRequest.getDescripcion());
+            parameters.addValue("usuarioCreacion", createRequest.getUsuarioCreacion());
+            
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            namedParameterJdbcTemplate.update(insertQuery.toString(), parameters, keyHolder, new String[]{"codzona"});
+            
+            Number key = keyHolder.getKey();
+            Integer zoneId = key != null ? key.intValue() : null;
+            
+            if (zoneId == null) {
+                throw new RuntimeException("No se pudo obtener el ID de la zona creada");
+            }
+            
+            // Consultar la zona creada
+            MapSqlParameterSource selectParams = new MapSqlParameterSource();
+            selectParams.addValue("codzona", zoneId);
+            
+            StringBuilder selectQueryBuilder = new StringBuilder();
+            selectQueryBuilder.append("SELECT ")
+                    .append("z.codzona AS id, ")
+                    .append("z.nombre AS name, ")
+                    .append("z.distrito AS district, ")
+                    .append("z.provincia AS province, ")
+                    .append("z.region AS region, ")
+                    .append("z.pais AS country, ")
+                    .append("z.latitud AS latitude, ")
+                    .append("z.longitud AS longitude, ")
+                    .append("z.nivelSeguridad AS securityLevel, ")
+                    .append("z.descripcion AS description, ")
+                    .append("z.activo AS active, ")
+                    .append("z.usuarioCreacion AS createdBy, ")
+                    .append("z.usuarioActualizacion AS updatedBy, ")
+                    .append("z.fechaCreacion AS createdAt, ")
+                    .append("z.fechaActualizacion AS updatedAt ")
+                    .append("FROM ")
+                    .append(schema)
+                    .append(".zonas z ")
+                    .append("WHERE z.codzona = :codzona");
+            
+            List<Zones> result = namedParameterJdbcTemplate.query(
+                    selectQueryBuilder.toString(),
+                    selectParams,
                     BeanPropertyRowMapper.newInstance(Zones.class)
             );
             

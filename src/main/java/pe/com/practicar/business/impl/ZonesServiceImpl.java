@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import pe.com.practicar.business.ZonesService;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.dto.ZonesPaginatedDto;
+import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.repository.ZonesJdbcRepository;
@@ -34,6 +35,14 @@ public class ZonesServiceImpl implements ZonesService {
                         .pageSize(pageSize)
                         .build()
                 );
+    }
+
+    @Override
+    public Mono<ZonesDto> createZone(ZoneDatosCreateRequest createRequest) {
+        return Mono.fromCallable(() -> zonesJdbcRepository.createZone(createRequest))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(monoZone -> monoZone)
+                .map(zoneMapper::convertToZoneResponse);
     }
 
     @Override

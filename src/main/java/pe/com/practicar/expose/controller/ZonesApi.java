@@ -1,9 +1,11 @@
 package pe.com.practicar.expose.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
+import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
 import pe.com.practicar.expose.schema.ZoneUpdateRequest;
@@ -20,11 +22,17 @@ public interface ZonesApi {
             @RequestParam(required = false) Integer tamanioPagina,
             final ServerWebExchange exchange);
 
+    @PostMapping("/zones")
+    @ResponseStatus(HttpStatus.CREATED)
+    Mono<ZoneResponse> crearZona(
+            @Valid @RequestBody ZoneCreateRequest request,
+            final ServerWebExchange exchange);
+
     @PatchMapping("/zones/{codigoZona}")
     @ResponseStatus(HttpStatus.OK)
     Mono<ZoneResponse> actualizarZona(
             @PathVariable Integer codigoZona,
-            @RequestBody ZoneUpdateRequest request,
+            @Valid @RequestBody ZoneUpdateRequest request,
             final ServerWebExchange exchange);
 
 }
