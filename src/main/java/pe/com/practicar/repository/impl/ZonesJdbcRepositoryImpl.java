@@ -45,11 +45,11 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                     .append("z.usuarioCreacion AS createdBy, ")
                     .append("z.usuarioActualizacion AS updatedBy, ")
                     .append("z.fechaCreacion AS createdAt, ")
-                    .append("z.fechaCreacion AS updatedAt ")
+                    .append("z.fechaActualizacion AS updatedAt ")
                     .append("FROM ")
                     .append(schema)
                     .append(".zonas z")
-                    .append("ORDER BY z.nombre ");
+                    .append(" ORDER BY z.nombre ");
 
                     int safePaginaActual = (currentPage != null && currentPage >= 1) ? currentPage : 1;
                     int safeTamanioPagina = (pageSize != null && pageSize > 0) ? pageSize : 10;
@@ -61,10 +61,6 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                     try {
                         offset = Math.multiplyExact(safePaginaActual - 1, boundedTamanioPagina);
                     } catch (ArithmeticException ex) {
-                        // Log y fallback a offset = 0 para seguridad
-                        log.warn("Pagination offset arithmetic overflow/underflow for paginaActual: {}, "
-                                        + "tamanioPagina: {}. Defaulting offset to 0.",
-                                currentPage, pageSize);
                         offset = 0;
                     }
 

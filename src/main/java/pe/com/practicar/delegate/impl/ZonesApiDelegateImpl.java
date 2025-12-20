@@ -23,23 +23,21 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
 
     @Override
     public Mono<ZonePaginateResponse> obtenerZonas(Integer paginaActual, Integer tamanioPagina, ServerWebExchange exchange) {
-        log.info("Obteniendo zonas - Página: {}, Tamaño: {}", paginaActual, tamanioPagina);
-        
         return zonesService.zonesList(paginaActual, tamanioPagina)
                 .map(zonesPaginatedDto -> {
                     List<ZoneResponse> zoneResponses = zonesPaginatedDto.getZones().stream()
                             .map(zonesMapper::zoneDtoToResponse)
                             .toList();
                     
+                    boolean existeSiguientePagina = zoneResponses.size() == tamanioPagina;
+                    
                     ZonePaginateResponse response = new ZonePaginateResponse();
                     response.setZone(zoneResponses);
                     response.setPaginaActual(paginaActual);
                     response.setTamanioPagina(tamanioPagina);
+                    response.setExisteSiguientePagina(existeSiguientePagina);
                     
                     return response;
-                })
-                .doOnSuccess(response -> log.info("Zonas obtenidas exitosamente: {} registros", 
-                        response.getZone().size()))
-                .doOnError(error -> log.error("Error al obtener zonas", error));
+                });
     }
 }

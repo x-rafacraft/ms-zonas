@@ -28,6 +28,8 @@ public class ZonesServiceImpl implements ZonesService {
                         .toList())
                 .map(zonesDtoList -> ZonesPaginatedDto.builder()
                         .zones(zonesDtoList)
+                        .currentPage(currentPage)
+                        .pageSize(pageSize)
                         .build()
                 );
     }
