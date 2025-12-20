@@ -9,6 +9,7 @@ import pe.com.practicar.delegate.builder.ZonesMapper;
 import pe.com.practicar.expose.controller.ZonesApiDelegate;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
+import pe.com.practicar.expose.schema.ZoneUpdateRequest;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -39,5 +40,11 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
                     
                     return response;
                 });
+    }
+
+    @Override
+    public Mono<ZoneResponse> actualizarZona(Integer codigoZona, ZoneUpdateRequest request, ServerWebExchange exchange) {
+        return zonesService.updateZone(codigoZona, request.getDatos())
+                .map(zonesMapper::zoneDtoToResponse);
     }
 }

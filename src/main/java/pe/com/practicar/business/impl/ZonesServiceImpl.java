@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pe.com.practicar.business.ZonesService;
+import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.dto.ZonesPaginatedDto;
+import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import reactor.core.publisher.Mono;
@@ -32,5 +34,13 @@ public class ZonesServiceImpl implements ZonesService {
                         .pageSize(pageSize)
                         .build()
                 );
+    }
+
+    @Override
+    public Mono<ZonesDto> updateZone(Integer zoneCode, ZoneDatosUpdateRequest updateRequest) {
+        return Mono.fromCallable(() -> zonesJdbcRepository.updateZone(zoneCode, updateRequest))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(monoZone -> monoZone)
+                .map(zoneMapper::convertToZoneResponse);
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import pe.com.practicar.repository.model.Zones;
 import reactor.core.publisher.Mono;
@@ -74,5 +75,110 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                             BeanPropertyRowMapper.newInstance(Zones.class));
                 })
                 .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Zones> updateZone(Integer zoneCode, ZoneDatosUpdateRequest updateRequest) {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource parameters = new MapSqlParameterSource();
+            parameters.addValue("codzona", zoneCode);
+
+            StringBuilder checkQueryBuilder = new StringBuilder();
+            checkQueryBuilder.append("SELECT COUNT(*) FROM ")
+                    .append(schema)
+                    .append(".zonas WHERE codzona = :codzona");
+            
+            Integer count = namedParameterJdbcTemplate.queryForObject(
+                    checkQueryBuilder.toString(), parameters, Integer.class);
+            
+            if (count == null || count == 0) {
+                throw new RuntimeException("Zona con código " + zoneCode + " no encontrada");
+            }
+            
+            StringBuilder updateQuery = new StringBuilder();
+            updateQuery.append("UPDATE ").append(schema).append(".zonas SET ");
+            
+            boolean first = true;
+            
+            if (updateRequest.getLatitud() != null) {
+                updateQuery.append("latitud = :latitud");
+                parameters.addValue("latitud", updateRequest.getLatitud());
+                first = false;
+            }
+            
+            if (updateRequest.getLongitud() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("longitud = :longitud");
+                parameters.addValue("longitud", updateRequest.getLongitud());
+                first = false;
+            }
+            
+            if (updateRequest.getNivelSeguridad() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("nivelSeguridad = :nivelSeguridad");
+                parameters.addValue("nivelSeguridad", updateRequest.getNivelSeguridad());
+                first = false;
+            }
+            
+            if (updateRequest.getDescripcion() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("descripcion = :descripcion");
+                parameters.addValue("descripcion", updateRequest.getDescripcion());
+                first = false;
+            }
+            
+            if (updateRequest.getActivo() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("activo = :activo");
+                parameters.addValue("activo", updateRequest.getActivo());
+                first = false;
+            }
+            
+            if (updateRequest.getUsuarioActualizacion() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("usuarioActualizacion = :usuarioActualizacion");
+                parameters.addValue("usuarioActualizacion", updateRequest.getUsuarioActualizacion());
+                first = false;
+            }
+            
+            if (!first) {
+                updateQuery.append(", ");
+            }
+            updateQuery.append("fechaActualizacion = GETDATE() ");
+            updateQuery.append("WHERE codzona = :codzona");
+            
+            namedParameterJdbcTemplate.update(updateQuery.toString(), parameters);
+
+            StringBuilder selectQueryBuilder = new StringBuilder();
+            selectQueryBuilder.append("SELECT ")
+                    .append("z.codzona AS id, ")
+                    .append("z.nombre AS name, ")
+                    .append("z.distrito AS district, ")
+                    .append("z.provincia AS province, ")
+                    .append("z.region AS region, ")
+                    .append("z.pais AS country, ")
+                    .append("z.latitud AS latitude, ")
+                    .append("z.longitud AS longitude, ")
+                    .append("z.nivelSeguridad AS securityLevel, ")
+                    .append("z.descripcion AS description, ")
+                    .append("z.activo AS active, ")
+                    .append("z.usuarioCreacion AS createdBy, ")
+                    .append("z.usuarioActualizacion AS updatedBy, ")
+                    .append("z.fechaCreacion AS createdAt, ")
+                    .append("z.fechaActualizacion AS updatedAt ")
+                    .append("FROM ")
+                    .append(schema)
+                    .append(".zonas z ")
+                    .append("WHERE z.codzona = :codzona");
+            
+            List<Zones> result = namedParameterJdbcTemplate.query(
+                    selectQueryBuilder.toString(),
+                    parameters,
+                    BeanPropertyRowMapper.newInstance(Zones.class)
+            );
+            
+            return result.isEmpty() ? null : result.get(0);
+        })
+        .subscribeOn(Schedulers.boundedElastic());
     }
 }
