@@ -1,11 +1,28 @@
 package pe.com.practicar.expose.schema;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@JsonPropertyOrder({
+        "nombre",
+        "distrito",
+        "provincia",
+        "region",
+        "pais",
+        "latitud",
+        "longitud",
+        "nivelSeguridad",
+        "descripcion",
+        "activo",
+        "usuarioCreacion",
+        "usuarioActualizacion",
+        "fechaCreacion",
+        "fechaActualizacion"
+})
 public class ZoneResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
