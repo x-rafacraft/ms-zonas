@@ -7,6 +7,7 @@ import org.springframework.web.server.ServerWebExchange;
 import pe.com.practicar.business.ZonesService;
 import pe.com.practicar.delegate.builder.ZonesMapper;
 import pe.com.practicar.expose.controller.ZonesApiDelegate;
+import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
 import pe.com.practicar.expose.schema.ZoneUpdateRequest;
@@ -40,6 +41,12 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
                     
                     return response;
                 });
+    }
+
+    @Override
+    public Mono<ZoneResponse> crearZona(ZoneCreateRequest request, ServerWebExchange exchange) {
+        return zonesService.createZone(request.getDatos())
+                .map(zonesMapper::zoneDtoToResponse);
     }
 
     @Override
