@@ -9,6 +9,9 @@ public class ZoneDatosCreateRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @NotNull(message = "El código de zona es obligatorio")
+    private Integer codzona;
+
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
     
@@ -39,6 +42,10 @@ public class ZoneDatosCreateRequest implements Serializable {
     
     @NotBlank(message = "El usuario de creación es obligatorio")
     private String usuarioCreacion;
+
+    @JsonProperty("codzona")
+    public Integer getCodzona() { return codzona; }
+    public void setCodzona(Integer codzona) { this.codzona = codzona; }
 
     @JsonProperty("nombre")
     public String getNombre() { return nombre; }

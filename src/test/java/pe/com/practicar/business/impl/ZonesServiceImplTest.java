@@ -59,4 +59,21 @@ class ZonesServiceImplTest {
                 .expectNextCount(1)
                 .verifyComplete();
     }
+
+    @Test
+    void zonesListWithFilters_DeberiaRetornarListaFiltrada() {
+        // Given
+        List<Zones> mockZones = Arrays.asList(new Zones(), new Zones());
+        when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), 
+                any(), any(), anyInt()))
+                .thenReturn(Mono.just(mockZones));
+
+        // When
+        Mono<?> result = zonesService.zonesListWithFilters(1, 10, "Lima", "Miraflores", 4);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextCount(1)
+                .verifyComplete();
+    }
 }

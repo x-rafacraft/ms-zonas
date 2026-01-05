@@ -50,6 +50,7 @@ class ZonesApiDelegateImplTest {
                 .build();
         
         ZoneResponse response = new ZoneResponse();
+        response.setCodzona(1);
         response.setNombre("Zona Test");
         
         when(zonesService.zonesList(anyInt(), anyInt())).thenReturn(Mono.just(paginatedDto));
@@ -57,6 +58,37 @@ class ZonesApiDelegateImplTest {
 
         // When
         Mono<?> result = zonesApiDelegate.obtenerZonas(1, 10, null);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
+    void obtenerZonasConFiltros_DeberiaRetornarRespuestaPaginadaFiltrada() {
+        // Given
+        ZonesDto dto = ZonesDto.builder()
+                .zoneCode(1)
+                .names("Zona Test")
+                .build();
+        
+        ZonesPaginatedDto paginatedDto = ZonesPaginatedDto.builder()
+                .zones(Arrays.asList(dto))
+                .currentPage(1)
+                .pageSize(10)
+                .build();
+        
+        ZoneResponse response = new ZoneResponse();
+        response.setCodzona(1);
+        response.setNombre("Zona Test");
+        
+        when(zonesService.zonesListWithFilters(anyInt(), anyInt(), any(), any(), anyInt()))
+                .thenReturn(Mono.just(paginatedDto));
+        when(zonesMapper.zoneDtoToResponse(any())).thenReturn(response);
+
+        // When
+        Mono<?> result = zonesApiDelegate.obtenerZonasConFiltros(1, 10, "Lima", "Miraflores", 4, null);
 
         // Then
         StepVerifier.create(result)
