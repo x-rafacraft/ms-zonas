@@ -2,6 +2,7 @@ package pe.com.practicar.repository;
 
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
+import pe.com.practicar.repository.model.ZoneSummaryByLevel;
 import pe.com.practicar.repository.model.Zones;
 import reactor.core.publisher.Mono;
 
@@ -32,4 +33,8 @@ public interface ZonesJdbcRepository {
     Mono<Boolean> existsByCoordinatesExcludingId(Double latitud, Double longitud, Integer zoneId);
     
     Mono<Boolean> existsByCodzona(Integer codzona);
+    
+    Mono<List<ZoneSummaryByLevel>> getZonesSummaryBySecurityLevel();
+    
+    Mono<Long> getTotalZonesCount();
 }

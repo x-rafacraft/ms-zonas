@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import pe.com.practicar.business.ZonesService;
+import pe.com.practicar.business.dto.ZoneSummaryByLevelDto;
+import pe.com.practicar.business.dto.ZoneSummaryDto;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.dto.ZonesPaginatedDto;
 import pe.com.practicar.business.exception.BusinessErrorCodes;
@@ -220,5 +222,35 @@ public class ZonesServiceImpl implements ZonesService {
                     log.error("Error al eliminar zona", e);
                     return Mono.error(BusinessException.createException(HttpStatus.INTERNAL_SERVER_ERROR, BusinessErrorCodes.ZONE_DELETE_FAILED));
                 });
+    }
+
+    @Override
+    public Mono<ZoneSummaryDto> getZonesSummary() {
+        return Mono.zip(
+                zonesJdbcRepository.getZonesSummaryBySecurityLevel(),
+                zonesJdbcRepository.getTotalZonesCount()
+        )
+        .map(tuple -> {
+            var summaryByLevel = tuple.getT1().stream()
+                    .map(summary -> ZoneSummaryByLevelDto.builder()
+                            .nivelSeguridad(summary.getSecurityLevel())
+                            .cantidad(summary.getCount())
+                            .build())
+                    .toList();
+
+            return ZoneSummaryDto.builder()
+                    .resumenPorNivel(summaryByLevel)
+                    .totalZonas(tuple.getT2())
+                    .build();
+        })
+        .onErrorResume(e -> {
+            log.error("Error al obtener resumen de zonas", e);
+            return Mono.error(BusinessException.builder()
+                    .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .code(BusinessErrorCodes.ZONE_NOT_FOUND.getCode())
+                    .type(BusinessErrorCodes.ZONE_NOT_FOUND.getTitle())
+                    .message("Error al obtener el resumen de zonas")
+                    .build());
+        });
     }
 }

@@ -1,5 +1,6 @@
 package pe.com.practicar.business;
 
+import pe.com.practicar.business.dto.ZoneSummaryDto;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.dto.ZonesPaginatedDto;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
@@ -21,4 +22,6 @@ public interface ZonesService {
     Mono<ZonesDto> replaceZone(Integer zoneCode, ZoneDatosCreateRequest replaceRequest);
     
     Mono<Void> deleteZone(Integer zoneCode);
+    
+    Mono<ZoneSummaryDto> getZonesSummary();
 }

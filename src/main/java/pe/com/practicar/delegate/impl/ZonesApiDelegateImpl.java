@@ -10,6 +10,8 @@ import pe.com.practicar.expose.controller.ZonesApiDelegate;
 import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
+import pe.com.practicar.expose.schema.ZoneSummaryByLevelResponse;
+import pe.com.practicar.expose.schema.ZoneSummaryResponse;
 import pe.com.practicar.expose.schema.ZoneUpdateRequest;
 import reactor.core.publisher.Mono;
 
@@ -92,5 +94,23 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
     @Override
     public Mono<Void> eliminarZona(Integer codigoZona, ServerWebExchange exchange) {
         return zonesService.deleteZone(codigoZona);
+    }
+
+    @Override
+    public Mono<ZoneSummaryResponse> obtenerResumenZonas(ServerWebExchange exchange) {
+        return zonesService.getZonesSummary()
+                .map(summaryDto -> {
+                    List<ZoneSummaryByLevelResponse> resumenPorNivel = summaryDto.getResumenPorNivel().stream()
+                            .map(byLevel -> ZoneSummaryByLevelResponse.builder()
+                                    .nivelSeguridad(byLevel.getNivelSeguridad())
+                                    .cantidad(byLevel.getCantidad())
+                                    .build())
+                            .toList();
+
+                    return ZoneSummaryResponse.builder()
+                            .resumenPorNivel(resumenPorNivel)
+                            .totalZonas(summaryDto.getTotalZonas())
+                            .build();
+                });
     }
 }

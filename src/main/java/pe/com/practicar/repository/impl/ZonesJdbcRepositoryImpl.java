@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
+import pe.com.practicar.repository.model.ZoneSummaryByLevel;
 import pe.com.practicar.repository.model.Zones;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -28,56 +29,71 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
     @Value("${spring.jpa.properties.hibernate.default_schema:public}")
     private String schema;
 
+    /**
+     * Construye el SELECT base para consultas de zonas
+     */
+    private String buildSelectZonesQuery() {
+        return "SELECT " +
+                "z.codzona AS id, " +
+                "z.nombre AS name, " +
+                "z.distrito AS district, " +
+                "z.provincia AS province, " +
+                "z.region AS region, " +
+                "z.pais AS country, " +
+                "z.latitud AS latitude, " +
+                "z.longitud AS longitude, " +
+                "z.nivelSeguridad AS securityLevel, " +
+                "z.descripcion AS description, " +
+                "z.activo AS active, " +
+                "z.usuarioCreacion AS createdBy, " +
+                "z.usuarioActualizacion AS updatedBy, " +
+                "z.fechaCreacion AS createdAt, " +
+                "z.fechaActualizacion AS updatedAt " +
+                "FROM " + schema + ".zonas z ";
+    }
+
+    /**
+     * Calcula el offset para paginación de forma segura
+     */
+    private int calculateOffset(Integer currentPage, Integer pageSize) {
+        int safePage = (currentPage != null && currentPage >= 1) ? currentPage : 1;
+        int safeSize = (pageSize != null && pageSize > 0) ? Math.min(pageSize, 1000) : 10;
+        
+        try {
+            return Math.multiplyExact(safePage - 1, safeSize);
+        } catch (ArithmeticException ex) {
+            return 0;
+        }
+    }
+
+    /**
+     * Aplica paginación a la query
+     */
+    private void applyPagination(StringBuilder query, MapSqlParameterSource parameters, 
+                                  Integer currentPage, Integer pageSize) {
+        int safeSize = (pageSize != null && pageSize > 0) ? Math.min(pageSize, 1000) : 10;
+        int offset = calculateOffset(currentPage, pageSize);
+        
+        parameters.addValue("offset", offset);
+        parameters.addValue("tamanioPagina", safeSize);
+        query.append("OFFSET :offset ROWS FETCH NEXT :tamanioPagina ROWS ONLY");
+    }
+
     @Override
     public Mono<List<Zones>> getZonesPaginated(Integer currentPage, Integer pageSize) {
         return Mono.fromCallable(() -> {
             MapSqlParameterSource parameters = new MapSqlParameterSource();
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.append("SELECT ")
-                    .append("z.codzona AS id, ")
-                    .append("z.nombre AS name, ")
-                    .append("z.distrito AS district, ")
-                    .append("z.provincia AS province, ")
-                    .append("z.region AS region, ")
-                    .append("z.pais AS country, ")
-                    .append("z.latitud AS latitude, ")
-                    .append("z.longitud AS longitude, ")
-                    .append("z.nivelSeguridad AS securityLevel, ")
-                    .append("z.descripcion AS description, ")
-                    .append("z.activo AS active, ")
-                    .append("z.usuarioCreacion AS createdBy, ")
-                    .append("z.usuarioActualizacion AS updatedBy, ")
-                    .append("z.fechaCreacion AS createdAt, ")
-                    .append("z.fechaActualizacion AS updatedAt ")
-                    .append("FROM ")
-                    .append(schema)
-                    .append(".zonas z")
-                    .append(" ORDER BY z.nombre ");
+            queryBuilder.append(buildSelectZonesQuery())
+                    .append("ORDER BY z.nombre ");
 
-                    int safePaginaActual = (currentPage != null && currentPage >= 1) ? currentPage : 1;
-                    int safeTamanioPagina = (pageSize != null && pageSize > 0) ? pageSize : 10;
+            applyPagination(queryBuilder, parameters, currentPage, pageSize);
 
-                    int boundedTamanioPagina = Math.min(safeTamanioPagina, 1000);
-
-                    int offset;
-
-                    try {
-                        offset = Math.multiplyExact(safePaginaActual - 1, boundedTamanioPagina);
-                    } catch (ArithmeticException ex) {
-                        offset = 0;
-                    }
-
-                    parameters.addValue("offset", offset);
-                    parameters.addValue("tamanioPagina", boundedTamanioPagina);
-                    queryBuilder.append("OFFSET :offset ROWS FETCH NEXT :tamanioPagina ROWS ONLY");
-
-                    String query = queryBuilder.toString();
-
-                    return namedParameterJdbcTemplate.query(query, parameters,
-                            BeanPropertyRowMapper.newInstance(Zones.class));
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+            return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
+                    BeanPropertyRowMapper.newInstance(Zones.class));
+        })
+        .subscribeOn(Schedulers.boundedElastic());
     }
 
     @Override
@@ -270,25 +286,7 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
             MapSqlParameterSource parameters = new MapSqlParameterSource();
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.append("SELECT ")
-                    .append("z.codzona AS id, ")
-                    .append("z.nombre AS name, ")
-                    .append("z.distrito AS district, ")
-                    .append("z.provincia AS province, ")
-                    .append("z.region AS region, ")
-                    .append("z.pais AS country, ")
-                    .append("z.latitud AS latitude, ")
-                    .append("z.longitud AS longitude, ")
-                    .append("z.nivelSeguridad AS securityLevel, ")
-                    .append("z.descripcion AS description, ")
-                    .append("z.activo AS active, ")
-                    .append("z.usuarioCreacion AS createdBy, ")
-                    .append("z.usuarioActualizacion AS updatedBy, ")
-                    .append("z.fechaCreacion AS createdAt, ")
-                    .append("z.fechaActualizacion AS updatedAt ")
-                    .append("FROM ")
-                    .append(schema)
-                    .append(".zonas z ")
+            queryBuilder.append(buildSelectZonesQuery())
                     .append("WHERE 1=1 ");
 
             if (province != null && !province.isBlank()) {
@@ -308,23 +306,9 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
 
             queryBuilder.append("ORDER BY z.nombre ");
 
-            int safePaginaActual = (currentPage != null && currentPage >= 1) ? currentPage : 1;
-            int safeTamanioPagina = (pageSize != null && pageSize > 0) ? pageSize : 10;
-            int boundedTamanioPagina = Math.min(safeTamanioPagina, 1000);
+            applyPagination(queryBuilder, parameters, currentPage, pageSize);
 
-            int offset;
-            try {
-                offset = Math.multiplyExact(safePaginaActual - 1, boundedTamanioPagina);
-            } catch (ArithmeticException ex) {
-                offset = 0;
-            }
-
-            parameters.addValue("offset", offset);
-            parameters.addValue("tamanioPagina", boundedTamanioPagina);
-            queryBuilder.append("OFFSET :offset ROWS FETCH NEXT :tamanioPagina ROWS ONLY");
-
-            String query = queryBuilder.toString();
-            return namedParameterJdbcTemplate.query(query, parameters,
+            return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
                     BeanPropertyRowMapper.newInstance(Zones.class));
         })
         .subscribeOn(Schedulers.boundedElastic());
@@ -336,30 +320,10 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
             MapSqlParameterSource parameters = new MapSqlParameterSource();
             parameters.addValue("codzona", zoneCode);
 
-            StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("SELECT ")
-                    .append("z.codzona AS id, ")
-                    .append("z.nombre AS name, ")
-                    .append("z.distrito AS district, ")
-                    .append("z.provincia AS province, ")
-                    .append("z.region AS region, ")
-                    .append("z.pais AS country, ")
-                    .append("z.latitud AS latitude, ")
-                    .append("z.longitud AS longitude, ")
-                    .append("z.nivelSeguridad AS securityLevel, ")
-                    .append("z.descripcion AS description, ")
-                    .append("z.activo AS active, ")
-                    .append("z.usuarioCreacion AS createdBy, ")
-                    .append("z.usuarioActualizacion AS updatedBy, ")
-                    .append("z.fechaCreacion AS createdAt, ")
-                    .append("z.fechaActualizacion AS updatedAt ")
-                    .append("FROM ")
-                    .append(schema)
-                    .append(".zonas z ")
-                    .append("WHERE z.codzona = :codzona");
+            String query = buildSelectZonesQuery() + "WHERE z.codzona = :codzona";
 
             List<Zones> result = namedParameterJdbcTemplate.query(
-                    queryBuilder.toString(),
+                    query,
                     parameters,
                     BeanPropertyRowMapper.newInstance(Zones.class)
             );
@@ -570,6 +534,47 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                     query.toString(), parameters, Integer.class);
 
             return count != null && count > 0;
+        })
+        .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<List<ZoneSummaryByLevel>> getZonesSummaryBySecurityLevel() {
+        return Mono.fromCallable(() -> {
+            StringBuilder query = new StringBuilder();
+            query.append("SELECT ")
+                    .append("z.nivelSeguridad AS securityLevel, ")
+                    .append("COUNT(*) AS count ")
+                    .append("FROM ")
+                    .append(schema)
+                    .append(".zonas z ")
+                    .append("GROUP BY z.nivelSeguridad ")
+                    .append("ORDER BY z.nivelSeguridad");
+
+            return namedParameterJdbcTemplate.query(
+                    query.toString(),
+                    new MapSqlParameterSource(),
+                    BeanPropertyRowMapper.newInstance(ZoneSummaryByLevel.class)
+            );
+        })
+        .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Long> getTotalZonesCount() {
+        return Mono.fromCallable(() -> {
+            StringBuilder query = new StringBuilder();
+            query.append("SELECT COUNT(*) FROM ")
+                    .append(schema)
+                    .append(".zonas");
+
+            Integer count = namedParameterJdbcTemplate.queryForObject(
+                    query.toString(),
+                    new MapSqlParameterSource(),
+                    Integer.class
+            );
+
+            return count != null ? count.longValue() : 0L;
         })
         .subscribeOn(Schedulers.boundedElastic());
     }

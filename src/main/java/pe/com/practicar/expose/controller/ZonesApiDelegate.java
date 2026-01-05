@@ -4,6 +4,7 @@ import org.springframework.web.server.ServerWebExchange;
 import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
+import pe.com.practicar.expose.schema.ZoneSummaryResponse;
 import pe.com.practicar.expose.schema.ZoneUpdateRequest;
 import reactor.core.publisher.Mono;
 
@@ -24,4 +25,6 @@ public interface ZonesApiDelegate {
     Mono<ZoneResponse> reemplazarZona(Integer codigoZona, ZoneCreateRequest request, ServerWebExchange exchange);
     
     Mono<Void> eliminarZona(Integer codigoZona, ServerWebExchange exchange);
+    
+    Mono<ZoneSummaryResponse> obtenerResumenZonas(ServerWebExchange exchange);
 }
