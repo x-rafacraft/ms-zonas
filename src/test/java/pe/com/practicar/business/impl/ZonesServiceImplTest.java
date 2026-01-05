@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.repository.ZonesJdbcRepository;
+import pe.com.practicar.repository.model.ZoneSummaryByLevel;
 import pe.com.practicar.repository.model.Zones;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -74,6 +75,36 @@ class ZonesServiceImplTest {
         // Then
         StepVerifier.create(result)
                 .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
+    void getZonesSummary_DeberiaRetornarResumen() {
+        // Given
+        ZoneSummaryByLevel summary1 = ZoneSummaryByLevel.builder()
+                .securityLevel(1)
+                .count(5L)
+                .build();
+        ZoneSummaryByLevel summary2 = ZoneSummaryByLevel.builder()
+                .securityLevel(4)
+                .count(10L)
+                .build();
+        
+        when(zonesJdbcRepository.getZonesSummaryBySecurityLevel())
+                .thenReturn(Mono.just(Arrays.asList(summary1, summary2)));
+        when(zonesJdbcRepository.getTotalZonesCount())
+                .thenReturn(Mono.just(15L));
+
+        // When
+        Mono<?> result = zonesService.getZonesSummary();
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextMatches(summary -> {
+                    var zoneSummary = (pe.com.practicar.business.dto.ZoneSummaryDto) summary;
+                    return zoneSummary.getTotalZonas() == 15L && 
+                           zoneSummary.getResumenPorNivel().size() == 2;
+                })
                 .verifyComplete();
     }
 }
