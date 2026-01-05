@@ -11,6 +11,7 @@ public interface ZonesMapper {
 
     ZonesMapper INSTANCE = Mappers.getMapper(ZonesMapper.class);
 
+    @Mapping(target = "codzona", source = "zoneCode")
     @Mapping(target = "nombre", source = "names")
     @Mapping(target = "distrito", source = "districts")
     @Mapping(target = "provincia", source = "provinces")

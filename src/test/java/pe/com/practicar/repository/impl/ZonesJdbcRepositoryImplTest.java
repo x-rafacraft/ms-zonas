@@ -63,6 +63,7 @@ class ZonesJdbcRepositoryImplTest {
     void createZone_DeberiaRetornarZonaCreada() {
         // Given
         ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(100);
         request.setNombre("Nueva Zona");
         request.setDistrito("Miraflores");
         request.setProvincia("Lima");
@@ -74,19 +75,13 @@ class ZonesJdbcRepositoryImplTest {
         request.setUsuarioCreacion("admin");
 
         Zones createdZone = new Zones();
-        createdZone.setId(1);
+        createdZone.setId(100);
         createdZone.setName("Nueva Zona");
         
         when(namedParameterJdbcTemplate.update(
                 anyString(),
-                any(MapSqlParameterSource.class),
-                any(GeneratedKeyHolder.class),
-                any(String[].class)
-        )).thenAnswer(invocation -> {
-            GeneratedKeyHolder holder = invocation.getArgument(2);
-            holder.getKeyList().add(java.util.Map.of("codzona", 1));
-            return 1;
-        });
+                any(MapSqlParameterSource.class)
+        )).thenReturn(1);
 
         when(namedParameterJdbcTemplate.query(
                 anyString(),
@@ -160,5 +155,31 @@ class ZonesJdbcRepositoryImplTest {
         StepVerifier.create(result)
                 .expectError(RuntimeException.class)
                 .verify();
+    }
+
+    @Test
+    void getZonesWithFilters_DeberiaRetornarListaFiltrada() {
+        // Given
+        Zones zone = new Zones();
+        zone.setId(1);
+        zone.setName("Zona Central Lima");
+        zone.setProvince("Lima");
+        zone.setDistrict("Miraflores");
+        zone.setSecurityLevel(4);
+        List<Zones> zones = Arrays.asList(zone);
+
+        when(namedParameterJdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                any(BeanPropertyRowMapper.class)
+        )).thenReturn(zones);
+
+        // When
+        Mono<List<Zones>> result = repository.getZonesWithFilters(1, 10, "Lima", "Miraflores", 4);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNext(zones)
+                .verifyComplete();
     }
 }

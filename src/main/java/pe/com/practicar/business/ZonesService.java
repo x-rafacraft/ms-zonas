@@ -10,7 +10,15 @@ public interface ZonesService {
 
     Mono<ZonesPaginatedDto> zonesList(Integer currentPage, Integer pageSize);
     
+    Mono<ZonesPaginatedDto> zonesListWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel);
+    
+    Mono<ZonesDto> getZoneById(Integer zoneCode);
+    
     Mono<ZonesDto> createZone(ZoneDatosCreateRequest createRequest);
     
     Mono<ZonesDto> updateZone(Integer zoneCode, ZoneDatosUpdateRequest updateRequest);
+    
+    Mono<ZonesDto> replaceZone(Integer zoneCode, ZoneDatosCreateRequest replaceRequest);
+    
+    Mono<Void> deleteZone(Integer zoneCode);
 }

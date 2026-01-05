@@ -10,12 +10,18 @@ public class ZoneDatosUpdateRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private String nombre;
     private Double latitud;
     private Double longitud;
     private Integer nivelSeguridad;
     private String descripcion;
     private Boolean activo;
     private String usuarioActualizacion;
+
+    @JsonProperty("nombre")
+    public String getNombre() { return nombre; }
+
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
     @JsonProperty("latitud")
     public Double getLatitud() { return latitud; }

@@ -11,7 +11,17 @@ public interface ZonesApiDelegate {
 
     Mono<ZonePaginateResponse> obtenerZonas(Integer paginaActual, Integer tamanioPagina, ServerWebExchange exchange);
     
+    Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina, 
+                                                       String provincia, String distrito, Integer nivelSeguridad, 
+                                                       ServerWebExchange exchange);
+    
+    Mono<ZoneResponse> obtenerZonaPorId(Integer codigoZona, ServerWebExchange exchange);
+    
     Mono<ZoneResponse> crearZona(ZoneCreateRequest request, ServerWebExchange exchange);
     
     Mono<ZoneResponse> actualizarZona(Integer codigoZona, ZoneUpdateRequest request, ServerWebExchange exchange);
+    
+    Mono<ZoneResponse> reemplazarZona(Integer codigoZona, ZoneCreateRequest request, ServerWebExchange exchange);
+    
+    Mono<Void> eliminarZona(Integer codigoZona, ServerWebExchange exchange);
 }

@@ -22,11 +22,25 @@ public class ZonesApiController implements ZonesApi {
         return delegate;
     }
 
+    @Override
     public Mono<ZonePaginateResponse> obtenerZonas(
             Integer paginaActual,
             Integer tamanioPagina,
+            String provincia,
+            String distrito,
+            Integer nivelSeguridad,
             final ServerWebExchange exchange) {
+        if (provincia != null || distrito != null || nivelSeguridad != null) {
+            return getDelegate().obtenerZonasConFiltros(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad, exchange);
+        }
         return getDelegate().obtenerZonas(paginaActual, tamanioPagina, exchange);
+    }
+
+    @Override
+    public Mono<ZoneResponse> obtenerZonaPorId(
+            Integer codigoZona,
+            final ServerWebExchange exchange) {
+        return getDelegate().obtenerZonaPorId(codigoZona, exchange);
     }
 
     @Override
@@ -42,6 +56,21 @@ public class ZonesApiController implements ZonesApi {
             ZoneUpdateRequest request,
             ServerWebExchange exchange) {
         return getDelegate().actualizarZona(codigoZona, request, exchange);
+    }
+
+    @Override
+    public Mono<ZoneResponse> reemplazarZona(
+            Integer codigoZona,
+            ZoneCreateRequest request,
+            ServerWebExchange exchange) {
+        return getDelegate().reemplazarZona(codigoZona, request, exchange);
+    }
+
+    @Override
+    public Mono<Void> eliminarZona(
+            Integer codigoZona,
+            ServerWebExchange exchange) {
+        return getDelegate().eliminarZona(codigoZona, exchange);
     }
 
 }

@@ -44,6 +44,34 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
     }
 
     @Override
+    public Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina, 
+                                                             String provincia, String distrito, Integer nivelSeguridad, 
+                                                             ServerWebExchange exchange) {
+        return zonesService.zonesListWithFilters(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad)
+                .map(zonesPaginatedDto -> {
+                    List<ZoneResponse> zoneResponses = zonesPaginatedDto.getZones().stream()
+                            .map(zonesMapper::zoneDtoToResponse)
+                            .toList();
+                    
+                    boolean existeSiguientePagina = zoneResponses.size() == tamanioPagina;
+                    
+                    ZonePaginateResponse response = new ZonePaginateResponse();
+                    response.setZone(zoneResponses);
+                    response.setPaginaActual(paginaActual);
+                    response.setTamanioPagina(tamanioPagina);
+                    response.setExisteSiguientePagina(existeSiguientePagina);
+                    
+                    return response;
+                });
+    }
+
+    @Override
+    public Mono<ZoneResponse> obtenerZonaPorId(Integer codigoZona, ServerWebExchange exchange) {
+        return zonesService.getZoneById(codigoZona)
+                .map(zonesMapper::zoneDtoToResponse);
+    }
+
+    @Override
     public Mono<ZoneResponse> crearZona(ZoneCreateRequest request, ServerWebExchange exchange) {
         return zonesService.createZone(request.getDatos())
                 .map(zonesMapper::zoneDtoToResponse);
@@ -53,5 +81,16 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
     public Mono<ZoneResponse> actualizarZona(Integer codigoZona, ZoneUpdateRequest request, ServerWebExchange exchange) {
         return zonesService.updateZone(codigoZona, request.getDatos())
                 .map(zonesMapper::zoneDtoToResponse);
+    }
+
+    @Override
+    public Mono<ZoneResponse> reemplazarZona(Integer codigoZona, ZoneCreateRequest request, ServerWebExchange exchange) {
+        return zonesService.replaceZone(codigoZona, request.getDatos())
+                .map(zonesMapper::zoneDtoToResponse);
+    }
+
+    @Override
+    public Mono<Void> eliminarZona(Integer codigoZona, ServerWebExchange exchange) {
+        return zonesService.deleteZone(codigoZona);
     }
 }

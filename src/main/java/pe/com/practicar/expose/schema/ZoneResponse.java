@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @JsonPropertyOrder({
+        "codzona",
         "nombre",
         "distrito",
         "provincia",
@@ -27,6 +28,7 @@ public class ZoneResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private Integer codzona;
     private String nombre;
     private String distrito;
     private String provincia;
@@ -41,6 +43,16 @@ public class ZoneResponse implements Serializable {
     private String usuarioActualizacion;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
+
+    public ZoneResponse codzona(Integer codzona) {
+        this.codzona = codzona;
+        return this;
+    }
+
+    @JsonProperty("codzona")
+    public Integer getCodzona() { return codzona; }
+
+    public void setCodzona(Integer codzona) { this.codzona = codzona; }
 
     public ZoneResponse nombre(String nombre) {
         this.nombre = nombre;
