@@ -124,4 +124,46 @@ class PaginationValidatorTest {
                 .expectNext(true)
                 .verifyComplete();
     }
+
+    @Test
+    void validatePaginationWithFilters_ConProvinciaConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, "Lima@#$", null, null))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validatePaginationWithFilters_ConDistritoConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, null, "Miraflores@#$", null))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validatePaginationWithFilters_ConProvinciaVacia_DeberiaRetornarTrue() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, "", null, null))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validatePaginationWithFilters_ConDistritoVacio_DeberiaRetornarTrue() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, null, "", null))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validatePaginationWithFilters_ConTodosFiltrosValidos_DeberiaRetornarTrue() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, "Lima", "Miraflores", 7))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validatePaginationWithFilters_ConTodosFiltrosNull_DeberiaRetornarTrue() {
+        StepVerifier.create(PaginationValidator.validatePaginationWithFilters(1, 10, null, null, null))
+                .expectNext(true)
+                .verifyComplete();
+    }
 }

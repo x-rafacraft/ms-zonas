@@ -148,4 +148,114 @@ class ZoneCreateRequestValidatorTest {
                 .expectError(BusinessException.class)
                 .verify();
     }
+
+    @Test
+    void validate_ConCodigoMenorAUno_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(0);
+        request.setNombre("Zona Centro Lima");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConDescripcionMuyLarga_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setDescripcion("A".repeat(501));
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConUsuarioCreacionConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin@#$");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConDistritoConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setDistrito("Miraflores@#$");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConProvinciaConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setProvincia("Lima@#$");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConRegionConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setRegion("Lima@#$");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
+
+    @Test
+    void validate_ConPaisConCaracteresEspeciales_DeberiaLanzarExcepcion() {
+        ZoneDatosCreateRequest request = new ZoneDatosCreateRequest();
+        request.setCodzona(1);
+        request.setNombre("Zona Centro Lima");
+        request.setPais("Peru@#$");
+        request.setLatitud(-12.1191);
+        request.setLongitud(-77.0292);
+        request.setNivelSeguridad(5);
+        request.setUsuarioCreacion("admin");
+
+        StepVerifier.create(ZoneCreateRequestValidator.validate(request))
+                .expectError(BusinessException.class)
+                .verify();
+    }
 }
