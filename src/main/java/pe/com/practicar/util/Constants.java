@@ -21,4 +21,10 @@ public class Constants {
     public static final String QUOTE = "\"";
     public static final String CANNOT_DESERIALIZE = "Cannot deserialize value of type";
     public static final String JAVA_INTEGER = "java.lang.Integer";
+    
+    public static final String FIELD_NOMBRE = "nombre";
+    public static final String FIELD_LATITUD = "latitud";
+    public static final String FIELD_LONGITUD = "longitud";
+    public static final String FIELD_NIVEL_SEGURIDAD = "nivelSeguridad";
+    public static final String FIELD_DESCRIPCION = "descripcion";
 }

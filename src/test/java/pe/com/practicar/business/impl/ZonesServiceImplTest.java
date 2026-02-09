@@ -44,7 +44,7 @@ class ZonesServiceImplTest {
         // Given
         List<Zones> mockZones = Arrays.asList(new Zones(), new Zones());
         when(zonesJdbcRepository.getZonesPaginated(anyInt(), anyInt()))
-                .thenReturn(Mono.just(mockZones));
+                .thenReturn(mockZones);
 
         // When
         Mono<?> result = zonesService.zonesList(1, 10);
@@ -59,7 +59,7 @@ class ZonesServiceImplTest {
     void zonesList_ConPaginaInvalida_DeberiaManejarlo() {
         // Given
         when(zonesJdbcRepository.getZonesPaginated(anyInt(), anyInt()))
-                .thenReturn(Mono.empty());
+                .thenReturn(Collections.emptyList());
 
         // When
         Mono<?> result = zonesService.zonesList(0, 10);
@@ -75,7 +75,7 @@ class ZonesServiceImplTest {
         List<Zones> mockZones = Arrays.asList(new Zones(), new Zones());
         when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), 
                 any(), any(), anyInt()))
-                .thenReturn(Mono.just(mockZones));
+                .thenReturn(mockZones);
 
         // When
         Mono<?> result = zonesService.zonesListWithFilters(1, 10, "Lima", "Miraflores", 4);
@@ -99,9 +99,9 @@ class ZonesServiceImplTest {
                 .build();
         
         when(zonesJdbcRepository.getZonesSummaryBySecurityLevel())
-                .thenReturn(Mono.just(Arrays.asList(summary1, summary2)));
+                .thenReturn(Arrays.asList(summary1, summary2));
         when(zonesJdbcRepository.getTotalZonesCount())
-                .thenReturn(Mono.just(15L));
+                .thenReturn(15L);
 
         // When
         Mono<?> result = zonesService.getZonesSummary();
@@ -120,9 +120,9 @@ class ZonesServiceImplTest {
     void getZonesSummary_ConErrorEnRepositorio_DeberiaLanzarExcepcion() {
         // Given
         when(zonesJdbcRepository.getZonesSummaryBySecurityLevel())
-                .thenReturn(Mono.error(new RuntimeException("Error de BD")));
+                .thenThrow(new RuntimeException("Error de BD"));
         when(zonesJdbcRepository.getTotalZonesCount())
-                .thenReturn(Mono.just(0L));
+                .thenReturn(0L);
 
         // When & Then
         StepVerifier.create(zonesService.getZonesSummary())
@@ -137,7 +137,7 @@ class ZonesServiceImplTest {
         ZonesDto mockDto = createMockDto();
         
         when(zonesJdbcRepository.getZoneById(1))
-                .thenReturn(Mono.just(mockZone));
+                .thenReturn(java.util.Optional.of(mockZone));
         when(zoneMapper.convertToZoneResponse(any(Zones.class)))
                 .thenReturn(mockDto);
 
@@ -151,7 +151,7 @@ class ZonesServiceImplTest {
     void getZoneById_ConIdInexistente_DeberiaLanzarExcepcion() {
         // Given
         when(zonesJdbcRepository.getZoneById(999))
-                .thenReturn(Mono.empty());
+                .thenReturn(java.util.Optional.empty());
 
         // When & Then
         StepVerifier.create(zonesService.getZoneById(999))
@@ -175,13 +175,13 @@ class ZonesServiceImplTest {
         ZonesDto mockDto = createMockDto();
         
         when(zonesJdbcRepository.existsByCodzona(anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByNombre(anyString()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByCoordinates(anyDouble(), anyDouble()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.createZone(any()))
-                .thenReturn(Mono.just(mockZone));
+                .thenReturn(mockZone);
         when(zoneMapper.convertToZoneResponse(any(Zones.class)))
                 .thenReturn(mockDto);
 
@@ -197,7 +197,7 @@ class ZonesServiceImplTest {
         ZoneDatosCreateRequest request = createMockCreateRequest();
         
         when(zonesJdbcRepository.existsByCodzona(anyInt()))
-                .thenReturn(Mono.just(true));
+                .thenReturn(true);
 
         // When & Then
         StepVerifier.create(zonesService.createZone(request))
@@ -211,9 +211,9 @@ class ZonesServiceImplTest {
         ZoneDatosCreateRequest request = createMockCreateRequest();
         
         when(zonesJdbcRepository.existsByCodzona(anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByNombre(anyString()))
-                .thenReturn(Mono.just(true));
+                .thenReturn(true);
 
         // When & Then
         StepVerifier.create(zonesService.createZone(request))
@@ -227,11 +227,11 @@ class ZonesServiceImplTest {
         ZoneDatosCreateRequest request = createMockCreateRequest();
         
         when(zonesJdbcRepository.existsByCodzona(anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByNombre(anyString()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByCoordinates(anyDouble(), anyDouble()))
-                .thenReturn(Mono.just(true));
+                .thenReturn(true);
 
         // When & Then
         StepVerifier.create(zonesService.createZone(request))
@@ -247,11 +247,11 @@ class ZonesServiceImplTest {
         ZonesDto mockDto = createMockDto();
         
         when(zonesJdbcRepository.existsByNombreExcludingId(anyString(), anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByCoordinatesExcludingId(anyDouble(), anyDouble(), anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.updateZone(anyInt(), any()))
-                .thenReturn(Mono.just(mockZone));
+                .thenReturn(java.util.Optional.of(mockZone));
         when(zoneMapper.convertToZoneResponse(any(Zones.class)))
                 .thenReturn(mockDto);
 
@@ -267,7 +267,7 @@ class ZonesServiceImplTest {
         ZoneDatosUpdateRequest request = createMockUpdateRequest();
         
         when(zonesJdbcRepository.existsByNombreExcludingId(anyString(), anyInt()))
-                .thenReturn(Mono.just(true));
+                .thenReturn(true);
 
         // When & Then
         StepVerifier.create(zonesService.updateZone(1, request))
@@ -281,9 +281,9 @@ class ZonesServiceImplTest {
         ZoneDatosUpdateRequest request = createMockUpdateRequest();
         
         when(zonesJdbcRepository.existsByNombreExcludingId(anyString(), anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByCoordinatesExcludingId(anyDouble(), anyDouble(), anyInt()))
-                .thenReturn(Mono.just(true));
+                .thenReturn(true);
 
         // When & Then
         StepVerifier.create(zonesService.updateZone(1, request))
@@ -297,11 +297,11 @@ class ZonesServiceImplTest {
         ZoneDatosUpdateRequest request = createMockUpdateRequest();
         
         when(zonesJdbcRepository.existsByNombreExcludingId(anyString(), anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.existsByCoordinatesExcludingId(anyDouble(), anyDouble(), anyInt()))
-                .thenReturn(Mono.just(false));
+                .thenReturn(false);
         when(zonesJdbcRepository.updateZone(anyInt(), any()))
-                .thenReturn(Mono.empty());
+                .thenReturn(java.util.Optional.empty());
 
         // When & Then
         StepVerifier.create(zonesService.updateZone(1, request))
@@ -317,7 +317,7 @@ class ZonesServiceImplTest {
         ZonesDto mockDto = createMockDto();
         
         when(zonesJdbcRepository.replaceZone(anyInt(), any()))
-                .thenReturn(Mono.just(mockZone));
+                .thenReturn(java.util.Optional.of(mockZone));
         when(zoneMapper.convertToZoneResponse(any(Zones.class)))
                 .thenReturn(mockDto);
 
@@ -333,7 +333,7 @@ class ZonesServiceImplTest {
         ZoneDatosCreateRequest request = createMockCreateRequest();
         
         when(zonesJdbcRepository.replaceZone(anyInt(), any()))
-                .thenReturn(Mono.empty());
+                .thenReturn(java.util.Optional.empty());
 
         // When & Then
         StepVerifier.create(zonesService.replaceZone(1, request))
@@ -345,7 +345,7 @@ class ZonesServiceImplTest {
     void deleteZone_ConIdValido_DeberiaEliminarZona() {
         // Given
         when(zonesJdbcRepository.deleteZone(1))
-                .thenReturn(Mono.just(1));
+                .thenReturn(1);
 
         // When & Then
         StepVerifier.create(zonesService.deleteZone(1))
@@ -356,7 +356,7 @@ class ZonesServiceImplTest {
     void deleteZone_ConZonaInexistente_DeberiaLanzarExcepcion() {
         // Given
         when(zonesJdbcRepository.deleteZone(999))
-                .thenReturn(Mono.just(0));
+                .thenReturn(0);
 
         // When & Then
         StepVerifier.create(zonesService.deleteZone(999))
@@ -376,7 +376,7 @@ class ZonesServiceImplTest {
     void zonesListWithFilters_ConListaVacia_DeberiaRetornarPaginadoVacio() {
         // Given
         when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), any(), any(), any()))
-                .thenReturn(Mono.just(Collections.emptyList()));
+                .thenReturn(Collections.emptyList());
 
         // When & Then
         StepVerifier.create(zonesService.zonesListWithFilters(1, 10, null, null, null))
@@ -393,7 +393,7 @@ class ZonesServiceImplTest {
     void zonesList_ConListaVacia_DeberiaRetornarPaginadoVacio() {
         // Given
         when(zonesJdbcRepository.getZonesPaginated(anyInt(), anyInt()))
-                .thenReturn(Mono.just(Collections.emptyList()));
+                .thenReturn(Collections.emptyList());
 
         // When & Then
         StepVerifier.create(zonesService.zonesList(1, 10))

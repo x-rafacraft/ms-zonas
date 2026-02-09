@@ -6,18 +6,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import pe.com.practicar.repository.model.ZoneSummaryByLevel;
 import pe.com.practicar.repository.model.Zones;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import pe.com.practicar.util.Constants;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @Slf4j
@@ -80,142 +78,88 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
     }
 
     @Override
-    public Mono<List<Zones>> getZonesPaginated(Integer currentPage, Integer pageSize) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            StringBuilder queryBuilder = new StringBuilder();
+    public List<Zones> getZonesPaginated(Integer currentPage, Integer pageSize) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.append(buildSelectZonesQuery())
-                    .append("ORDER BY z.nombre ");
+        queryBuilder.append(buildSelectZonesQuery())
+                .append("ORDER BY z.nombre ");
 
-            applyPagination(queryBuilder, parameters, currentPage, pageSize);
+        applyPagination(queryBuilder, parameters, currentPage, pageSize);
 
-            return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
-                    BeanPropertyRowMapper.newInstance(Zones.class));
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
+                BeanPropertyRowMapper.newInstance(Zones.class));
     }
 
     @Override
-    public Mono<Zones> updateZone(Integer zoneCode, ZoneDatosUpdateRequest updateRequest) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("codzona", zoneCode);
+    public Optional<Zones> updateZone(Integer zoneCode, ZoneDatosUpdateRequest updateRequest) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("codzona", zoneCode);
 
-            StringBuilder checkQueryBuilder = new StringBuilder();
-            checkQueryBuilder.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas WHERE codzona = :codzona");
-            
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    checkQueryBuilder.toString(), parameters, Integer.class);
-            
-            if (count == null || count == 0) {
-                throw new RuntimeException("Zona con código " + zoneCode + " no encontrada");
-            }
-            
-            StringBuilder updateQuery = new StringBuilder();
-            updateQuery.append("UPDATE ").append(schema).append(".zonas SET ");
-            
-            boolean first = true;
-            
-            if (updateRequest.getNombre() != null) {
-                updateQuery.append("nombre = :nombre");
-                parameters.addValue("nombre", updateRequest.getNombre());
-                first = false;
-            }
-            
-            if (updateRequest.getLatitud() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("latitud = :latitud");
-                parameters.addValue("latitud", updateRequest.getLatitud());
-                first = false;
-            }
-            
-            if (updateRequest.getLongitud() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("longitud = :longitud");
-                parameters.addValue("longitud", updateRequest.getLongitud());
-                first = false;
-            }
-            
-            if (updateRequest.getNivelSeguridad() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("nivelSeguridad = :nivelSeguridad");
-                parameters.addValue("nivelSeguridad", updateRequest.getNivelSeguridad());
-                first = false;
-            }
-            
-            if (updateRequest.getDescripcion() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("descripcion = :descripcion");
-                parameters.addValue("descripcion", updateRequest.getDescripcion());
-                first = false;
-            }
-            
-            if (updateRequest.getActivo() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("activo = :activo");
-                parameters.addValue("activo", updateRequest.getActivo());
-                first = false;
-            }
-            
-            if (updateRequest.getUsuarioActualizacion() != null) {
-                if (!first) updateQuery.append(", ");
-                updateQuery.append("usuarioActualizacion = :usuarioActualizacion");
-                parameters.addValue("usuarioActualizacion", updateRequest.getUsuarioActualizacion());
-                first = false;
-            }
-            
-            if (!first) {
-                updateQuery.append(", ");
-            }
-            updateQuery.append("fechaActualizacion = GETDATE() ");
-            updateQuery.append("WHERE codzona = :codzona");
-            
-            namedParameterJdbcTemplate.update(updateQuery.toString(), parameters);
+        validateZoneExists(zoneCode, parameters);
+        
+        StringBuilder updateQuery = buildUpdateQuery(updateRequest, parameters);
+        namedParameterJdbcTemplate.update(updateQuery.toString(), parameters);
 
-            StringBuilder selectQueryBuilder = new StringBuilder();
-            selectQueryBuilder.append("SELECT ")
-                    .append("z.codzona AS id, ")
-                    .append("z.nombre AS name, ")
-                    .append("z.distrito AS district, ")
-                    .append("z.provincia AS province, ")
-                    .append("z.region AS region, ")
-                    .append("z.pais AS country, ")
-                    .append("z.latitud AS latitude, ")
-                    .append("z.longitud AS longitude, ")
-                    .append("z.nivelSeguridad AS securityLevel, ")
-                    .append("z.descripcion AS description, ")
-                    .append("z.activo AS active, ")
-                    .append("z.usuarioCreacion AS createdBy, ")
-                    .append("z.usuarioActualizacion AS updatedBy, ")
-                    .append("z.fechaCreacion AS createdAt, ")
-                    .append("z.fechaActualizacion AS updatedAt ")
-                    .append("FROM ")
-                    .append(schema)
-                    .append(".zonas z ")
-                    .append("WHERE z.codzona = :codzona");
-            
-            List<Zones> result = namedParameterJdbcTemplate.query(
-                    selectQueryBuilder.toString(),
-                    parameters,
-                    BeanPropertyRowMapper.newInstance(Zones.class)
-            );
-            
-            return result.isEmpty() ? null : result.get(0);
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return getZoneById(zoneCode);
+    }
+
+    private void validateZoneExists(Integer zoneCode, MapSqlParameterSource parameters) {
+        StringBuilder checkQueryBuilder = new StringBuilder();
+        checkQueryBuilder.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas WHERE codzona = :codzona");
+        
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                checkQueryBuilder.toString(), parameters, Integer.class);
+        
+        if (count == null || count == 0) {
+            throw new RuntimeException("Zona con código " + zoneCode + " no encontrada");
+        }
+    }
+
+    private StringBuilder buildUpdateQuery(ZoneDatosUpdateRequest updateRequest, MapSqlParameterSource parameters) {
+        StringBuilder updateQuery = new StringBuilder();
+        updateQuery.append("UPDATE ").append(schema).append(".zonas SET ");
+        
+        boolean first = true;
+        first = addFieldIfNotNull(updateQuery, parameters, Constants.FIELD_NOMBRE, updateRequest.getNombre(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, Constants.FIELD_LATITUD, updateRequest.getLatitud(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, Constants.FIELD_LONGITUD, updateRequest.getLongitud(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, Constants.FIELD_NIVEL_SEGURIDAD, updateRequest.getNivelSeguridad(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, Constants.FIELD_DESCRIPCION, updateRequest.getDescripcion(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, "activo", updateRequest.getActivo(), first);
+        first = addFieldIfNotNull(updateQuery, parameters, "usuarioActualizacion", updateRequest.getUsuarioActualizacion(), first);
+        
+        if (!first) {
+            updateQuery.append(", ");
+        }
+        updateQuery.append("fechaActualizacion = GETDATE() ");
+        updateQuery.append("WHERE codzona = :codzona");
+        
+        return updateQuery;
+    }
+
+    private boolean addFieldIfNotNull(StringBuilder query, MapSqlParameterSource parameters, 
+                                      String fieldName, Object value, boolean isFirst) {
+        if (value != null) {
+            if (!isFirst) {
+                query.append(", ");
+            }
+            query.append(fieldName).append(" = :").append(fieldName);
+            parameters.addValue(fieldName, value);
+            return false;
+        }
+        return isFirst;
     }
 
     @Override
-    public Mono<Zones> createZone(ZoneDatosCreateRequest createRequest) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            
-            // Activar IDENTITY_INSERT para permitir inserción manual del codzona
-            String setIdentityOn = "SET IDENTITY_INSERT " + schema + ".zonas ON";
-            namedParameterJdbcTemplate.getJdbcTemplate().execute(setIdentityOn);
+    public Zones createZone(ZoneDatosCreateRequest createRequest) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        
+        // Activar IDENTITY_INSERT para permitir inserción manual del codzona
+        String setIdentityOn = "SET IDENTITY_INSERT " + schema + ".zonas ON";
+        namedParameterJdbcTemplate.getJdbcTemplate().execute(setIdentityOn);
             
             StringBuilder insertQuery = new StringBuilder();
             insertQuery.append("INSERT INTO ").append(schema).append(".zonas ")
@@ -231,8 +175,8 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
             parameters.addValue("provincia", createRequest.getProvincia());
             parameters.addValue("region", createRequest.getRegion());
             parameters.addValue("pais", createRequest.getPais());
-            parameters.addValue("latitud", createRequest.getLatitud());
-            parameters.addValue("longitud", createRequest.getLongitud());
+            parameters.addValue(Constants.FIELD_LATITUD, createRequest.getLatitud());
+            parameters.addValue(Constants.FIELD_LONGITUD, createRequest.getLongitud());
             parameters.addValue("nivelSeguridad", createRequest.getNivelSeguridad());
             parameters.addValue("descripcion", createRequest.getDescripcion());
             parameters.addValue("usuarioCreacion", createRequest.getUsuarioCreacion());
@@ -269,114 +213,105 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                     .append(".zonas z ")
                     .append("WHERE z.codzona = :codzona");
             
-            List<Zones> result = namedParameterJdbcTemplate.query(
-                    selectQueryBuilder.toString(),
-                    selectParams,
-                    BeanPropertyRowMapper.newInstance(Zones.class)
-            );
-            
-            return result.isEmpty() ? null : result.get(0);
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        List<Zones> result = namedParameterJdbcTemplate.query(
+                selectQueryBuilder.toString(),
+                selectParams,
+                BeanPropertyRowMapper.newInstance(Zones.class)
+        );
+        
+        return result.isEmpty() ? null : result.get(0);
     }
 
     @Override
-    public Mono<List<Zones>> getZonesWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            StringBuilder queryBuilder = new StringBuilder();
+    public List<Zones> getZonesWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.append(buildSelectZonesQuery())
-                    .append("WHERE 1=1 ");
+        queryBuilder.append(buildSelectZonesQuery())
+                .append("WHERE 1=1 ");
 
-            if (province != null && !province.isBlank()) {
-                queryBuilder.append("AND z.provincia LIKE :province ");
-                parameters.addValue("province", "%" + province + "%");
-            }
+        if (province != null && !province.isBlank()) {
+            queryBuilder.append("AND z.provincia LIKE :province ");
+            parameters.addValue("province", "%" + province + "%");
+        }
 
-            if (district != null && !district.isBlank()) {
-                queryBuilder.append("AND z.distrito LIKE :district ");
-                parameters.addValue("district", "%" + district + "%");
-            }
+        if (district != null && !district.isBlank()) {
+            queryBuilder.append("AND z.distrito LIKE :district ");
+            parameters.addValue("district", "%" + district + "%");
+        }
 
-            if (securityLevel != null) {
-                queryBuilder.append("AND z.nivelSeguridad = :securityLevel ");
-                parameters.addValue("securityLevel", securityLevel);
-            }
+        if (securityLevel != null) {
+            queryBuilder.append("AND z.nivelSeguridad = :securityLevel ");
+            parameters.addValue("securityLevel", securityLevel);
+        }
 
-            queryBuilder.append("ORDER BY z.nombre ");
+        queryBuilder.append("ORDER BY z.nombre ");
 
-            applyPagination(queryBuilder, parameters, currentPage, pageSize);
+        applyPagination(queryBuilder, parameters, currentPage, pageSize);
 
-            return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
-                    BeanPropertyRowMapper.newInstance(Zones.class));
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return namedParameterJdbcTemplate.query(queryBuilder.toString(), parameters,
+                BeanPropertyRowMapper.newInstance(Zones.class));
     }
 
     @Override
-    public Mono<Zones> getZoneById(Integer zoneCode) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("codzona", zoneCode);
+    public Optional<Zones> getZoneById(Integer zoneCode) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("codzona", zoneCode);
 
-            String query = buildSelectZonesQuery() + "WHERE z.codzona = :codzona";
+        String query = buildSelectZonesQuery() + "WHERE z.codzona = :codzona";
 
-            List<Zones> result = namedParameterJdbcTemplate.query(
-                    query,
-                    parameters,
-                    BeanPropertyRowMapper.newInstance(Zones.class)
-            );
+        List<Zones> result = namedParameterJdbcTemplate.query(
+                query,
+                parameters,
+                BeanPropertyRowMapper.newInstance(Zones.class)
+        );
 
-            return result.isEmpty() ? null : result.get(0);
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     @Override
-    public Mono<Zones> replaceZone(Integer zoneCode, ZoneDatosCreateRequest replaceRequest) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("codzona", zoneCode);
+    public Optional<Zones> replaceZone(Integer zoneCode, ZoneDatosCreateRequest replaceRequest) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("codzona", zoneCode);
 
-            // Verificar que existe
-            StringBuilder checkQueryBuilder = new StringBuilder();
-            checkQueryBuilder.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas WHERE codzona = :codzona");
+        // Verificar que existe
+        StringBuilder checkQueryBuilder = new StringBuilder();
+        checkQueryBuilder.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas WHERE codzona = :codzona");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    checkQueryBuilder.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                checkQueryBuilder.toString(), parameters, Integer.class);
 
-            if (count == null || count == 0) {
-                throw new RuntimeException("Zona con código " + zoneCode + " no encontrada");
-            }
+        if (count == null || count == 0) {
+            throw new RuntimeException("Zona con código " + zoneCode + " no encontrada");
+        }
 
             // Realizar el reemplazo completo (PUT)
             StringBuilder updateQuery = new StringBuilder();
             updateQuery.append("UPDATE ").append(schema).append(".zonas SET ")
-                    .append("nombre = :nombre, ")
+                    .append(Constants.FIELD_NOMBRE).append(" = :").append(Constants.FIELD_NOMBRE).append(", ")
                     .append("distrito = :distrito, ")
                     .append("provincia = :provincia, ")
                     .append("region = :region, ")
                     .append("pais = :pais, ")
-                    .append("latitud = :latitud, ")
-                    .append("longitud = :longitud, ")
-                    .append("nivelSeguridad = :nivelSeguridad, ")
-                    .append("descripcion = :descripcion, ")
+                    .append(Constants.FIELD_LATITUD).append(" = :").append(Constants.FIELD_LATITUD).append(", ")
+                    .append(Constants.FIELD_LONGITUD).append(" = :").append(Constants.FIELD_LONGITUD).append(", ")
+                    .append(Constants.FIELD_NIVEL_SEGURIDAD).append(" = :").append(Constants.FIELD_NIVEL_SEGURIDAD).append(", ")
+                    .append(Constants.FIELD_DESCRIPCION).append(" = :").append(Constants.FIELD_DESCRIPCION).append(", ")
                     .append("usuarioActualizacion = :usuarioCreacion, ")
                     .append("fechaActualizacion = GETDATE() ")
                     .append("WHERE codzona = :codzona");
 
-            parameters.addValue("nombre", replaceRequest.getNombre());
+            parameters.addValue(Constants.FIELD_NOMBRE, replaceRequest.getNombre());
             parameters.addValue("distrito", replaceRequest.getDistrito());
             parameters.addValue("provincia", replaceRequest.getProvincia());
             parameters.addValue("region", replaceRequest.getRegion());
             parameters.addValue("pais", replaceRequest.getPais());
-            parameters.addValue("latitud", replaceRequest.getLatitud());
-            parameters.addValue("longitud", replaceRequest.getLongitud());
-            parameters.addValue("nivelSeguridad", replaceRequest.getNivelSeguridad());
-            parameters.addValue("descripcion", replaceRequest.getDescripcion());
+            parameters.addValue(Constants.FIELD_LATITUD, replaceRequest.getLatitud());
+            parameters.addValue(Constants.FIELD_LONGITUD, replaceRequest.getLongitud());
+            parameters.addValue(Constants.FIELD_NIVEL_SEGURIDAD, replaceRequest.getNivelSeguridad());
+            parameters.addValue(Constants.FIELD_DESCRIPCION, replaceRequest.getDescripcion());
             parameters.addValue("usuarioCreacion", replaceRequest.getUsuarioCreacion());
 
             namedParameterJdbcTemplate.update(updateQuery.toString(), parameters);
@@ -404,178 +339,150 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
                     .append(".zonas z ")
                     .append("WHERE z.codzona = :codzona");
 
-            List<Zones> result = namedParameterJdbcTemplate.query(
-                    selectQueryBuilder.toString(),
-                    parameters,
-                    BeanPropertyRowMapper.newInstance(Zones.class)
-            );
+        List<Zones> result = namedParameterJdbcTemplate.query(
+                selectQueryBuilder.toString(),
+                parameters,
+                BeanPropertyRowMapper.newInstance(Zones.class)
+        );
 
-            return result.isEmpty() ? null : result.get(0);
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     @Override
-    public Mono<Integer> deleteZone(Integer zoneCode) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("codzona", zoneCode);
+    public int deleteZone(Integer zoneCode) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("codzona", zoneCode);
 
-            StringBuilder deleteQuery = new StringBuilder();
-            deleteQuery.append("DELETE FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE codzona = :codzona");
+        StringBuilder deleteQuery = new StringBuilder();
+        deleteQuery.append("DELETE FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE codzona = :codzona");
 
-            int rowsAffected = namedParameterJdbcTemplate.update(deleteQuery.toString(), parameters);
-            
-            return rowsAffected;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return namedParameterJdbcTemplate.update(deleteQuery.toString(), parameters);
     }
 
     @Override
-    public Mono<Boolean> existsByNombre(String nombre) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("nombre", nombre);
+    public boolean existsByNombre(String nombre) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue(Constants.FIELD_NOMBRE, nombre);
 
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE LOWER(nombre) = LOWER(:nombre)");
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE LOWER(").append(Constants.FIELD_NOMBRE).append(") = LOWER(:").append(Constants.FIELD_NOMBRE).append(")");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(), parameters, Integer.class);
 
-            return count != null && count > 0;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null && count > 0;
     }
 
     @Override
-    public Mono<Boolean> existsByCoordinates(Double latitud, Double longitud) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("latitud", latitud);
-            parameters.addValue("longitud", longitud);
+    public boolean existsByCoordinates(Double latitud, Double longitud) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue(Constants.FIELD_LATITUD, latitud);
+        parameters.addValue(Constants.FIELD_LONGITUD, longitud);
 
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE latitud = :latitud AND longitud = :longitud");
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE latitud = :latitud AND longitud = :longitud");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(), parameters, Integer.class);
 
-            return count != null && count > 0;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null && count > 0;
     }
 
     @Override
-    public Mono<Boolean> existsByNombreExcludingId(String nombre, Integer zoneId) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("nombre", nombre);
-            parameters.addValue("codzona", zoneId);
+    public boolean existsByNombreExcludingId(String nombre, Integer zoneId) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue(Constants.FIELD_NOMBRE, nombre);
+        parameters.addValue("codzona", zoneId);
 
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE LOWER(nombre) = LOWER(:nombre) AND codzona != :codzona");
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE LOWER(").append(Constants.FIELD_NOMBRE).append(") = LOWER(:").append(Constants.FIELD_NOMBRE).append(") AND codzona != :codzona");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(), parameters, Integer.class);
 
-            return count != null && count > 0;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null && count > 0;
     }
 
     @Override
-    public Mono<Boolean> existsByCoordinatesExcludingId(Double latitud, Double longitud, Integer zoneId) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("latitud", latitud);
-            parameters.addValue("longitud", longitud);
-            parameters.addValue("codzona", zoneId);
+    public boolean existsByCoordinatesExcludingId(Double latitud, Double longitud, Integer zoneId) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue(Constants.FIELD_LATITUD, latitud);
+        parameters.addValue(Constants.FIELD_LONGITUD, longitud);
+        parameters.addValue("codzona", zoneId);
 
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE latitud = :latitud AND longitud = :longitud AND codzona != :codzona");
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE latitud = :latitud AND longitud = :longitud AND codzona != :codzona");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(), parameters, Integer.class);
 
-            return count != null && count > 0;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null && count > 0;
     }
 
     @Override
-    public Mono<Boolean> existsByCodzona(Integer codzona) {
-        return Mono.fromCallable(() -> {
-            MapSqlParameterSource parameters = new MapSqlParameterSource();
-            parameters.addValue("codzona", codzona);
+    public boolean existsByCodzona(Integer codzona) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("codzona", codzona);
 
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas ")
-                    .append("WHERE codzona = :codzona");
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas ")
+                .append("WHERE codzona = :codzona");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(), parameters, Integer.class);
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(), parameters, Integer.class);
 
-            return count != null && count > 0;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null && count > 0;
     }
 
     @Override
-    public Mono<List<ZoneSummaryByLevel>> getZonesSummaryBySecurityLevel() {
-        return Mono.fromCallable(() -> {
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT ")
-                    .append("z.nivelSeguridad AS securityLevel, ")
-                    .append("COUNT(*) AS count ")
-                    .append("FROM ")
-                    .append(schema)
-                    .append(".zonas z ")
-                    .append("GROUP BY z.nivelSeguridad ")
-                    .append("ORDER BY z.nivelSeguridad");
+    public List<ZoneSummaryByLevel> getZonesSummaryBySecurityLevel() {
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT ")
+                .append("z.nivelSeguridad AS securityLevel, ")
+                .append("COUNT(*) AS count ")
+                .append("FROM ")
+                .append(schema)
+                .append(".zonas z ")
+                .append("GROUP BY z.nivelSeguridad ")
+                .append("ORDER BY z.nivelSeguridad");
 
-            return namedParameterJdbcTemplate.query(
-                    query.toString(),
-                    new MapSqlParameterSource(),
-                    BeanPropertyRowMapper.newInstance(ZoneSummaryByLevel.class)
-            );
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return namedParameterJdbcTemplate.query(
+                query.toString(),
+                new MapSqlParameterSource(),
+                BeanPropertyRowMapper.newInstance(ZoneSummaryByLevel.class)
+        );
     }
 
     @Override
-    public Mono<Long> getTotalZonesCount() {
-        return Mono.fromCallable(() -> {
-            StringBuilder query = new StringBuilder();
-            query.append("SELECT COUNT(*) FROM ")
-                    .append(schema)
-                    .append(".zonas");
+    public long getTotalZonesCount() {
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT COUNT(*) FROM ")
+                .append(schema)
+                .append(".zonas");
 
-            Integer count = namedParameterJdbcTemplate.queryForObject(
-                    query.toString(),
-                    new MapSqlParameterSource(),
-                    Integer.class
-            );
+        Integer count = namedParameterJdbcTemplate.queryForObject(
+                query.toString(),
+                new MapSqlParameterSource(),
+                Integer.class
+        );
 
-            return count != null ? count.longValue() : 0L;
-        })
-        .subscribeOn(Schedulers.boundedElastic());
+        return count != null ? count.longValue() : 0L;
     }
 }

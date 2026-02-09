@@ -33,9 +33,8 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<ZonesPaginatedDto> zonesList(Integer currentPage, Integer pageSize) {
         return PaginationValidator.validatePagination(currentPage, pageSize)
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZonesPaginated(currentPage, pageSize)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZones -> monoZones)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZonesPaginated(currentPage, pageSize))
+                        .subscribeOn(Schedulers.boundedElastic()))
                 .map(zones -> zones.stream()
                         .map(zoneMapper::convertToZoneResponse)
                         .toList())
@@ -50,9 +49,8 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<ZonesPaginatedDto> zonesListWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel) {
         return PaginationValidator.validatePaginationWithFilters(currentPage, pageSize, province, district, securityLevel)
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZonesWithFilters(currentPage, pageSize, province, district, securityLevel)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZones -> monoZones)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZonesWithFilters(currentPage, pageSize, province, district, securityLevel))
+                        .subscribeOn(Schedulers.boundedElastic()))
                 .map(zones -> zones.stream()
                         .map(zoneMapper::convertToZoneResponse)
                         .toList())
@@ -67,9 +65,9 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<ZonesDto> getZoneById(Integer zoneCode) {
         return ZoneIdValidator.validate(zoneCode)
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZoneById(zoneCode)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZone -> monoZone)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZoneById(zoneCode))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(opt -> opt.map(Mono::just).orElseGet(Mono::empty)))
                 .map(zoneMapper::convertToZoneResponse)
                 .switchIfEmpty(Mono.error(
                         BusinessException.createException(HttpStatus.NOT_FOUND, BusinessErrorCodes.ZONE_NOT_FOUND)
@@ -79,7 +77,8 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<ZonesDto> createZone(ZoneDatosCreateRequest createRequest) {
         return ZoneCreateRequestValidator.validate(createRequest)
-                .flatMap(valid -> zonesJdbcRepository.existsByCodzona(createRequest.getCodzona()))
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.existsByCodzona(createRequest.getCodzona()))
+                        .subscribeOn(Schedulers.boundedElastic()))
                 .flatMap(exists -> {
                     if (exists) {
                         return Mono.error(BusinessException.builder()
@@ -89,7 +88,8 @@ public class ZonesServiceImpl implements ZonesService {
                                 .message("Ya existe una zona con el código: " + createRequest.getCodzona())
                                 .build());
                     }
-                    return zonesJdbcRepository.existsByNombre(createRequest.getNombre());
+                    return Mono.fromCallable(() -> zonesJdbcRepository.existsByNombre(createRequest.getNombre()))
+                            .subscribeOn(Schedulers.boundedElastic());
                 })
                 .flatMap(exists -> {
                     if (exists) {
@@ -100,7 +100,8 @@ public class ZonesServiceImpl implements ZonesService {
                                 .message("Ya existe una zona con el nombre: " + createRequest.getNombre())
                                 .build());
                     }
-                    return zonesJdbcRepository.existsByCoordinates(createRequest.getLatitud(), createRequest.getLongitud());
+                    return Mono.fromCallable(() -> zonesJdbcRepository.existsByCoordinates(createRequest.getLatitud(), createRequest.getLongitud()))
+                            .subscribeOn(Schedulers.boundedElastic());
                 })
                 .flatMap(exists -> {
                     if (exists) {
@@ -111,10 +112,9 @@ public class ZonesServiceImpl implements ZonesService {
                                 .message("Ya existe una zona con las coordenadas: latitud=" + createRequest.getLatitud() + ", longitud=" + createRequest.getLongitud())
                                 .build());
                     }
-                    return Mono.fromCallable(() -> zonesJdbcRepository.createZone(createRequest));
+                    return Mono.fromCallable(() -> zonesJdbcRepository.createZone(createRequest))
+                            .subscribeOn(Schedulers.boundedElastic());
                 })
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZone -> monoZone)
                 .map(zoneMapper::convertToZoneResponse)
                 .onErrorMap(e -> {
                     if (e instanceof BusinessException) {
@@ -132,7 +132,8 @@ public class ZonesServiceImpl implements ZonesService {
                 .flatMap(valid -> {
                     // Validar nombre duplicado si se está actualizando
                     if (updateRequest.getNombre() != null && !updateRequest.getNombre().isEmpty()) {
-                        return zonesJdbcRepository.existsByNombreExcludingId(updateRequest.getNombre(), zoneCode)
+                        return Mono.fromCallable(() -> zonesJdbcRepository.existsByNombreExcludingId(updateRequest.getNombre(), zoneCode))
+                                .subscribeOn(Schedulers.boundedElastic())
                                 .flatMap(exists -> {
                                     if (exists) {
                                         return Mono.error(BusinessException.builder()
@@ -150,8 +151,9 @@ public class ZonesServiceImpl implements ZonesService {
                 .flatMap(valid -> {
                     // Validar coordenadas duplicadas si se están actualizando ambas
                     if (updateRequest.getLatitud() != null && updateRequest.getLongitud() != null) {
-                        return zonesJdbcRepository.existsByCoordinatesExcludingId(
-                                updateRequest.getLatitud(), updateRequest.getLongitud(), zoneCode)
+                        return Mono.fromCallable(() -> zonesJdbcRepository.existsByCoordinatesExcludingId(
+                                updateRequest.getLatitud(), updateRequest.getLongitud(), zoneCode))
+                                .subscribeOn(Schedulers.boundedElastic())
                                 .flatMap(exists -> {
                                     if (exists) {
                                         return Mono.error(BusinessException.builder()
@@ -167,9 +169,9 @@ public class ZonesServiceImpl implements ZonesService {
                     }
                     return Mono.just(true);
                 })
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.updateZone(zoneCode, updateRequest)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZone -> monoZone)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.updateZone(zoneCode, updateRequest))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(opt -> opt.map(Mono::just).orElseGet(Mono::empty)))
                 .map(zoneMapper::convertToZoneResponse)
                 .switchIfEmpty(Mono.error(
                         BusinessException.createException(HttpStatus.NOT_FOUND, BusinessErrorCodes.ZONE_NOT_FOUND)
@@ -187,9 +189,9 @@ public class ZonesServiceImpl implements ZonesService {
     public Mono<ZonesDto> replaceZone(Integer zoneCode, ZoneDatosCreateRequest replaceRequest) {
         return ZoneIdValidator.validate(zoneCode)
                 .flatMap(valid -> ZoneCreateRequestValidator.validate(replaceRequest))
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.replaceZone(zoneCode, replaceRequest)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoZone -> monoZone)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.replaceZone(zoneCode, replaceRequest))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(opt -> opt.map(Mono::just).orElseGet(Mono::empty)))
                 .map(zoneMapper::convertToZoneResponse)
                 .switchIfEmpty(Mono.error(
                         BusinessException.createException(HttpStatus.NOT_FOUND, BusinessErrorCodes.ZONE_NOT_FOUND)
@@ -206,9 +208,8 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<Void> deleteZone(Integer zoneCode) {
         return ZoneIdValidator.validate(zoneCode)
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.deleteZone(zoneCode)))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(monoResult -> monoResult)
+                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.deleteZone(zoneCode))
+                        .subscribeOn(Schedulers.boundedElastic()))
                 .flatMap(rowsAffected -> {
                     if (rowsAffected == 0) {
                         return Mono.error(BusinessException.createException(HttpStatus.NOT_FOUND, BusinessErrorCodes.ZONE_NOT_FOUND));
@@ -227,8 +228,10 @@ public class ZonesServiceImpl implements ZonesService {
     @Override
     public Mono<ZoneSummaryDto> getZonesSummary() {
         return Mono.zip(
-                zonesJdbcRepository.getZonesSummaryBySecurityLevel(),
-                zonesJdbcRepository.getTotalZonesCount()
+                Mono.fromCallable(zonesJdbcRepository::getZonesSummaryBySecurityLevel)
+                        .subscribeOn(Schedulers.boundedElastic()),
+                Mono.fromCallable(zonesJdbcRepository::getTotalZonesCount)
+                        .subscribeOn(Schedulers.boundedElastic())
         )
         .map(tuple -> {
             var summaryByLevel = tuple.getT1().stream()
