@@ -17,7 +17,7 @@ import pe.com.practicar.business.validator.ZoneIdValidator;
 import pe.com.practicar.business.validator.ZoneUpdateRequestValidator;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
-import pe.com.practicar.mapper.ZoneMapper;
+import pe.com.practicar.delegate.mappers.ZoneMapper;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;

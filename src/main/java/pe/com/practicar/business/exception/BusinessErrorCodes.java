@@ -20,6 +20,10 @@ public enum BusinessErrorCodes {
   INVALID_RISK_LEVEL("011", "INVALID_RISK_LEVEL", "El nivel de riesgo debe estar entre 1 y 10"),
   INVALID_PAGINATION("012", "INVALID_PAGINATION", "Los parámetros de paginación no son válidos"),
   REQUIRED_FIELD_MISSING("013", "REQUIRED_FIELD_MISSING", "Campo requerido faltante"),
+  INVALID_REQUEST_FORMAT("014", "INVALID_REQUEST_FORMAT", "Formato de solicitud inválido"),
+  INVALID_PARAMETER_TYPE("015", "INVALID_PARAMETER_TYPE", "Tipo de parámetro inválido"),
+  INVALID_PARAMETER_VALUE("016", "INVALID_PARAMETER_VALUE", "Valor de parámetro inválido"),
+  CONSTRAINT_VIOLATION("017", "CONSTRAINT_VIOLATION", "Violación de restricción"),
   
   // Errores generales
   BUSINESS_ERROR("050", "BUSINESS_ERROR", "Error de negocio"),

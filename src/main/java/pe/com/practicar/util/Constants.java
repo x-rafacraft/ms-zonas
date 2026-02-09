@@ -1,5 +1,8 @@
 package pe.com.practicar.util;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class Constants {
     // Mensajes de error
     public static final String RESPONSE_MESSAGE_ERROR_FORMAT_PARAMS = "Debe asignar valor(es) que cumplan con el formato solicitado en el/los siguiente(s) parametro(s): ";
