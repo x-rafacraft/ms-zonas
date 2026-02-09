@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,13 +16,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.server.ServerWebInputException;
 import pe.com.practicar.business.dto.CustomErrorResponse;
 import pe.com.practicar.business.exception.BusinessErrorCodes;
-import pe.com.practicar.business.exception.BusinessException;
+import pe.com.practicar.util.Constants;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 
 /**
  * Manejador global de excepciones para la aplicación.
@@ -33,52 +33,67 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GenericExceptionHandler {
 
-    /**
-     * Extrae un mensaje de error detallado de las causas de una excepción.
-     * Busca patrones comunes en los mensajes de error y los traduce a mensajes amigables.
-     */
     private String extractDetailedMessage(Throwable exception, String defaultMessage) {
         Throwable cause = exception.getCause();
         while (cause != null) {
             String causeMessage = cause.getMessage();
             if (causeMessage != null) {
-                if (causeMessage.contains("field \"")) {
-                    String fieldName = extractBetween(causeMessage, "field \"", "\"");
-                    if (fieldName != null) {
-                        return String.format("El campo '%s' tiene un formato inválido. Verifique el tipo de dato.", fieldName);
-                    }
-                }
-                
-                if (causeMessage.contains("from String \"")) {
-                    String invalidValue = extractBetween(causeMessage, "from String \"", "\"");
-                    if (invalidValue != null) {
-                        return String.format("El valor '%s' no es válido. Verifique el tipo de dato esperado.", invalidValue);
-                    }
-                }
-                
-                if (causeMessage.contains("For input string: \"")) {
-                    String invalidValue = extractBetween(causeMessage, "For input string: \"", "\"");
-                    if (invalidValue != null) {
-                        return String.format("El valor '%s' no es válido. Se esperaba un número entero.", invalidValue);
-                    }
-                }
-                
-                if (causeMessage.contains("Cannot deserialize value of type")) {
-                    return "Uno o más campos tienen un formato de dato inválido.";
-                }
-                
-                if (causeMessage.contains("java.lang.Integer")) {
-                    return "Se esperaba un número entero válido.";
-                }
+                String message = tryExtractFieldError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractStringValueError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractInputStringError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractDeserializationError(causeMessage);
+                if (message != null) return message;
             }
             cause = cause.getCause();
         }
         return defaultMessage;
     }
 
-    /**
-     * Extrae texto entre dos delimitadores.
-     */
+    private String tryExtractFieldError(String causeMessage) {
+        if (causeMessage.contains(Constants.FIELD_PATTERN)) {
+            String fieldName = extractBetween(causeMessage, Constants.FIELD_PATTERN, Constants.QUOTE);
+            if (fieldName != null) {
+                return String.format("El campo '%s' tiene un formato inválido. Verifique el tipo de dato.", fieldName);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractStringValueError(String causeMessage) {
+        if (causeMessage.contains(Constants.FROM_STRING_PATTERN)) {
+            String invalidValue = extractBetween(causeMessage, Constants.FROM_STRING_PATTERN, Constants.QUOTE);
+            if (invalidValue != null) {
+                return String.format("El valor '%s' no es válido. Verifique el tipo de dato esperado.", invalidValue);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractInputStringError(String causeMessage) {
+        if (causeMessage.contains(Constants.FOR_INPUT_STRING_PATTERN)) {
+            String invalidValue = extractBetween(causeMessage, Constants.FOR_INPUT_STRING_PATTERN, Constants.QUOTE);
+            if (invalidValue != null) {
+                return String.format("El valor '%s' no es válido. Se esperaba un número entero.", invalidValue);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractDeserializationError(String causeMessage) {
+        if (causeMessage.contains(Constants.CANNOT_DESERIALIZE)) {
+            return "Uno o más campos tienen un formato de dato inválido.";
+        }
+        if (causeMessage.contains(Constants.JAVA_INTEGER)) {
+            return "Se esperaba un número entero válido.";
+        }
+        return null;
+    }
     private String extractBetween(String text, String start, String end) {
         int startIdx = text.indexOf(start);
         if (startIdx == -1) return null;
