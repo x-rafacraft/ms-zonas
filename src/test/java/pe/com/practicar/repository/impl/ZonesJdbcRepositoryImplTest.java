@@ -13,12 +13,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.model.Zones;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -51,12 +51,13 @@ class ZonesJdbcRepositoryImplTest {
         )).thenReturn(zones);
 
         // When
-        Mono<List<Zones>> result = repository.getZonesPaginated(1, 10);
+        List<Zones> result = repository.getZonesPaginated(1, 10);
 
         // Then
-        StepVerifier.create(result)
-                .expectNext(zones)
-                .verifyComplete();
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getId());
+        assertEquals("Zona Test", result.get(0).getName());
     }
 
     // @Test
@@ -90,12 +91,11 @@ class ZonesJdbcRepositoryImplTest {
         )).thenReturn(Arrays.asList(createdZone));
 
         // When
-        Mono<Zones> result = repository.createZone(request);
+        Zones result = repository.createZone(request);
 
         // Then
-        StepVerifier.create(result)
-                .expectNextMatches(zone -> zone.getId() == 100)
-                .verifyComplete();
+        assertNotNull(result);
+        assertEquals(100, result.getId());
     }
 
     @Test
@@ -128,12 +128,12 @@ class ZonesJdbcRepositoryImplTest {
         )).thenReturn(Arrays.asList(updatedZone));
 
         // When
-        Mono<Zones> result = repository.updateZone(1, request);
+        Optional<Zones> result = repository.updateZone(1, request);
 
         // Then
-        StepVerifier.create(result)
-                .expectNext(updatedZone)
-                .verifyComplete();
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().getId());
+        assertEquals(-12.0464, result.get().getLatitude());
     }
 
     @Test
@@ -148,13 +148,8 @@ class ZonesJdbcRepositoryImplTest {
                 eq(Integer.class)
         )).thenReturn(0);
 
-        // When
-        Mono<Zones> result = repository.updateZone(999, request);
-
-        // Then
-        StepVerifier.create(result)
-                .expectError(RuntimeException.class)
-                .verify();
+        // When & Then
+        assertThrows(RuntimeException.class, () -> repository.updateZone(999, request));
     }
 
     @Test
@@ -175,11 +170,13 @@ class ZonesJdbcRepositoryImplTest {
         )).thenReturn(zones);
 
         // When
-        Mono<List<Zones>> result = repository.getZonesWithFilters(1, 10, "Lima", "Miraflores", 4);
+        List<Zones> result = repository.getZonesWithFilters(1, 10, "Lima", "Miraflores", 4);
 
         // Then
-        StepVerifier.create(result)
-                .expectNext(zones)
-                .verifyComplete();
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Lima", result.get(0).getProvince());
+        assertEquals("Miraflores", result.get(0).getDistrict());
+        assertEquals(4, result.get(0).getSecurityLevel());
     }
 }
