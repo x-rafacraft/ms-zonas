@@ -72,6 +72,7 @@ sonarqube {
 		property "sonar.projectKey", "ms-zonas-seguras"
 		property "sonar.projectName", "Microservicio Zonas Seguras"
 		property "sonar.host.url", "http://localhost:9000"
+		property "sonar.token", "sqa_2eec776b23489ff6123e46efe7e678085129f3e3"
 		property "sonar.sourceEncoding", "UTF-8"
 		property "sonar.sources", "src/main/java"
 		property "sonar.tests", "src/test/java"
