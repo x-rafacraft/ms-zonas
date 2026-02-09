@@ -1,9 +1,14 @@
 package pe.com.practicar.business.validator;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import pe.com.practicar.business.exception.BusinessException;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import reactor.test.StepVerifier;
+
+import java.util.stream.Stream;
 
 class ZoneUpdateRequestValidatorTest {
 
@@ -48,6 +53,26 @@ class ZoneUpdateRequestValidatorTest {
     }
 
     @Test
+    void validate_ConDescripcionValida_DeberiaRetornarTrue() {
+        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
+        request.setDescripcion("Descripción de prueba");
+
+        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validate_ConUsuarioActualizacionValido_DeberiaRetornarTrue() {
+        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
+        request.setUsuarioActualizacion("admin");
+
+        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
     void validate_ConNombreConCaracteresEspeciales_DeberiaLanzarExcepcion() {
         ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
         request.setNombre("Zona@#$%");
@@ -68,9 +93,9 @@ class ZoneUpdateRequestValidatorTest {
     }
 
     @Test
-    void validate_ConLatitudFueraDeRangoMinimo_DeberiaLanzarExcepcion() {
+    void validate_ConDescripcionMuyLarga_DeberiaLanzarExcepcion() {
         ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setLatitud(-91.0);
+        request.setDescripcion("A".repeat(501));
 
         StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
                 .expectError(BusinessException.class)
@@ -78,53 +103,37 @@ class ZoneUpdateRequestValidatorTest {
     }
 
     @Test
-    void validate_ConLatitudFueraDeRangoMaximo_DeberiaLanzarExcepcion() {
+    void validate_ConUsuarioActualizacionConCaracteresEspeciales_DeberiaLanzarExcepcion() {
         ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setLatitud(91.0);
+        request.setUsuarioActualizacion("admin@#$");
 
         StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
                 .expectError(BusinessException.class)
                 .verify();
     }
 
-    @Test
-    void validate_ConLongitudFueraDeRangoMinimo_DeberiaLanzarExcepcion() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideInvalidCoordinatesAndSecurityLevels")
+    void validate_ConDatosInvalidos_DeberiaLanzarExcepcion(String testName, Double latitud, Double longitud, Integer nivelSeguridad) {
         ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setLongitud(-181.0);
+        request.setLatitud(latitud);
+        request.setLongitud(longitud);
+        request.setNivelSeguridad(nivelSeguridad);
 
         StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
                 .expectError(BusinessException.class)
                 .verify();
     }
 
-    @Test
-    void validate_ConLongitudFueraDeRangoMaximo_DeberiaLanzarExcepcion() {
-        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setLongitud(181.0);
-
-        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
-                .expectError(BusinessException.class)
-                .verify();
-    }
-
-    @Test
-    void validate_ConNivelSeguridadMenorAUno_DeberiaLanzarExcepcion() {
-        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setNivelSeguridad(0);
-
-        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
-                .expectError(BusinessException.class)
-                .verify();
-    }
-
-    @Test
-    void validate_ConNivelSeguridadMayorADiez_DeberiaLanzarExcepcion() {
-        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
-        request.setNivelSeguridad(11);
-
-        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
-                .expectError(BusinessException.class)
-                .verify();
+    private static Stream<Arguments> provideInvalidCoordinatesAndSecurityLevels() {
+        return Stream.of(
+                Arguments.of("Latitud menor a -90", -91.0, null, null),
+                Arguments.of("Latitud mayor a 90", 91.0, null, null),
+                Arguments.of("Longitud menor a -180", null, -181.0, null),
+                Arguments.of("Longitud mayor a 180", null, 181.0, null),
+                Arguments.of("Nivel seguridad menor a 1", null, null, 0),
+                Arguments.of("Nivel seguridad mayor a 10", null, null, 11)
+        );
     }
 
     @Test
@@ -137,6 +146,36 @@ class ZoneUpdateRequestValidatorTest {
         request.setDescripcion("Nueva descripcion");
         request.setActivo(true);
         request.setUsuarioActualizacion("admin");
+
+        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validate_ConNombreVacio_DeberiaRetornarTrue() {
+        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
+        request.setNombre("");
+
+        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validate_ConDescripcionVacia_DeberiaRetornarTrue() {
+        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
+        request.setDescripcion("");
+
+        StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void validate_ConUsuarioActualizacionVacio_DeberiaRetornarTrue() {
+        ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
+        request.setUsuarioActualizacion("");
 
         StepVerifier.create(ZoneUpdateRequestValidator.validate(request))
                 .expectNext(true)

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,13 +16,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.server.ServerWebInputException;
 import pe.com.practicar.business.dto.CustomErrorResponse;
 import pe.com.practicar.business.exception.BusinessErrorCodes;
-import pe.com.practicar.business.exception.BusinessException;
+import pe.com.practicar.util.Constants;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 
 /**
  * Manejador global de excepciones para la aplicación.
@@ -32,6 +32,80 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GenericExceptionHandler {
+
+    private String extractDetailedMessage(Throwable exception, String defaultMessage) {
+        Throwable cause = exception.getCause();
+        while (cause != null) {
+            String causeMessage = cause.getMessage();
+            if (causeMessage != null) {
+                String message = tryExtractFieldError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractStringValueError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractInputStringError(causeMessage);
+                if (message != null) return message;
+
+                message = tryExtractDeserializationError(causeMessage);
+                if (message != null) return message;
+            }
+            cause = cause.getCause();
+        }
+        return defaultMessage;
+    }
+
+    private String tryExtractFieldError(String causeMessage) {
+        if (causeMessage.contains(Constants.FIELD_PATTERN)) {
+            String fieldName = extractBetween(causeMessage, Constants.FIELD_PATTERN, Constants.QUOTE);
+            if (fieldName != null) {
+                return String.format("El campo '%s' tiene un formato inválido. Verifique el tipo de dato.", fieldName);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractStringValueError(String causeMessage) {
+        if (causeMessage.contains(Constants.FROM_STRING_PATTERN)) {
+            String invalidValue = extractBetween(causeMessage, Constants.FROM_STRING_PATTERN, Constants.QUOTE);
+            if (invalidValue != null) {
+                return String.format("El valor '%s' no es válido. Verifique el tipo de dato esperado.", invalidValue);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractInputStringError(String causeMessage) {
+        if (causeMessage.contains(Constants.FOR_INPUT_STRING_PATTERN)) {
+            String invalidValue = extractBetween(causeMessage, Constants.FOR_INPUT_STRING_PATTERN, Constants.QUOTE);
+            if (invalidValue != null) {
+                return String.format("El valor '%s' no es válido. Se esperaba un número entero.", invalidValue);
+            }
+        }
+        return null;
+    }
+
+    private String tryExtractDeserializationError(String causeMessage) {
+        if (causeMessage.contains(Constants.CANNOT_DESERIALIZE)) {
+            return "Uno o más campos tienen un formato de dato inválido.";
+        }
+        if (causeMessage.contains(Constants.JAVA_INTEGER)) {
+            return "Se esperaba un número entero válido.";
+        }
+        return null;
+    }
+    private String extractBetween(String text, String start, String end) {
+        int startIdx = text.indexOf(start);
+        if (startIdx == -1) return null;
+        
+        startIdx += start.length();
+        int endIdx = text.indexOf(end, startIdx);
+        
+        if (endIdx > startIdx) {
+            return text.substring(startIdx, endIdx);
+        }
+        return null;
+    }
 
     /**
      * Maneja errores de tipo de parámetros en WebFlux.
@@ -42,50 +116,8 @@ public class GenericExceptionHandler {
     public CustomErrorResponse handleServerWebInputException(ServerWebInputException ex) {
         log.error("Error de entrada web: {}", ex.getMessage(), ex);
         
-        String mensaje = "Formato de parámetro inválido. Verifique que los valores enviados sean correctos.";
-        
-        Throwable cause = ex.getCause();
-        while (cause != null) {
-            String causeMessage = cause.getMessage();
-            if (causeMessage != null) {
-                if (causeMessage.contains("Cannot deserialize value of type")) {
-                    if (causeMessage.contains("field \"")) {
-                        int fieldStart = causeMessage.indexOf("field \"") + 7;
-                        int fieldEnd = causeMessage.indexOf("\"", fieldStart);
-                        if (fieldStart > 6 && fieldEnd > fieldStart) {
-                            String fieldName = causeMessage.substring(fieldStart, fieldEnd);
-                            mensaje = String.format("El campo '%s' tiene un formato inválido. Verifique el tipo de dato.", fieldName);
-                            break;
-                        }
-                    }
-                    if (causeMessage.contains("from String \"")) {
-                        int valueStart = causeMessage.indexOf("from String \"") + 13;
-                        int valueEnd = causeMessage.indexOf("\"", valueStart);
-                        if (valueStart > 12 && valueEnd > valueStart) {
-                            String invalidValue = causeMessage.substring(valueStart, valueEnd);
-                            mensaje = String.format("El valor '%s' no es válido. Verifique el tipo de dato esperado.", invalidValue);
-                            break;
-                        }
-                    }
-                    mensaje = "Uno o más campos tienen un formato de dato inválido.";
-                    break;
-                }
-                
-                if (causeMessage.contains("For input string:")) {
-                    int startIdx = causeMessage.indexOf("For input string: \"") + 19;
-                    int endIdx = causeMessage.indexOf("\"", startIdx);
-                    if (startIdx > 18 && endIdx > startIdx) {
-                        String invalidValue = causeMessage.substring(startIdx, endIdx);
-                        mensaje = String.format("El valor '%s' no es válido. Se esperaba un número entero.", invalidValue);
-                        break;
-                    }
-                } else if (causeMessage.contains("java.lang.Integer")) {
-                    mensaje = "Se esperaba un número entero válido.";
-                    break;
-                }
-            }
-            cause = cause.getCause();
-        }
+        String mensaje = extractDetailedMessage(ex, 
+            "Formato de parámetro inválido. Verifique que los valores enviados sean correctos.");
         
         CustomErrorResponse.ErrorDetail errorDetail = CustomErrorResponse.ErrorDetail.builder()
                 .tipo("FUNCIONAL")
@@ -264,27 +296,7 @@ public class GenericExceptionHandler {
     }
 
     /**
-     * Maneja excepciones de negocio personalizadas.
-     */
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<CustomErrorResponse> handleBusinessException(BusinessException ex) {
-        log.error("Error de negocio: {}", ex.getMessage(), ex);
-        
-        CustomErrorResponse.ErrorDetail errorDetail = CustomErrorResponse.ErrorDetail.builder()
-                .tipo(ex.getType())
-                .codigo(ex.getCode())
-                .mensaje(ex.getMessage())
-                .build();
-        
-        CustomErrorResponse errorResponse = CustomErrorResponse.builder()
-                .error(errorDetail)
-                .build();
-        
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Maneja errores de base de datos SQL y DataAccessException.
+     * Maneja errores de base de datos (SQL y DataAccess).
      */
     @ExceptionHandler({SQLException.class, DataAccessException.class})
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -304,8 +316,6 @@ public class GenericExceptionHandler {
 
     /**
      * Maneja RuntimeException genéricas no capturadas por otros handlers más específicos.
-     * Este handler debe estar entre los últimos para no capturar excepciones que deberían
-     * ser manejadas por otros handlers más específicos.
      */
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -327,7 +337,6 @@ public class GenericExceptionHandler {
 
     /**
      * Maneja todas las demás excepciones no controladas.
-     * Este es el handler de último recurso.
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
