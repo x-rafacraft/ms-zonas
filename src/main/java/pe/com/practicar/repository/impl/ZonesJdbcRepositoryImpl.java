@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import pe.com.practicar.business.model.RiskLevel;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
@@ -182,7 +183,9 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
     }
 
     @Override
-    public List<Zones> getZonesWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel) {
+    public List<Zones> getZonesWithFilters(Integer currentPage, Integer pageSize,
+                                           String province, String district, Integer securityLevel,
+                                           String city, RiskLevel minRisk, RiskLevel maxRisk) {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         StringBuilder queryBuilder = new StringBuilder();
 
@@ -199,9 +202,24 @@ public class ZonesJdbcRepositoryImpl implements ZonesJdbcRepository {
             parameters.addValue("district", "%" + district + "%");
         }
 
+        if (city != null && !city.isBlank()) {
+            queryBuilder.append("AND (z.provincia LIKE :city OR z.distrito LIKE :city) ");
+            parameters.addValue("city", "%" + city + "%");
+        }
+
         if (securityLevel != null) {
             queryBuilder.append("AND z.nivelSeguridad = :securityLevel ");
             parameters.addValue("securityLevel", securityLevel);
+        }
+
+        if (minRisk != null) {
+            queryBuilder.append("AND z.nivelSeguridad >= :minRiskValue ");
+            parameters.addValue("minRiskValue", minRisk.getMinValue());
+        }
+
+        if (maxRisk != null) {
+            queryBuilder.append("AND z.nivelSeguridad <= :maxRiskValue ");
+            parameters.addValue("maxRiskValue", maxRisk.getMaxValue());
         }
 
         queryBuilder.append("ORDER BY z.nombre ");

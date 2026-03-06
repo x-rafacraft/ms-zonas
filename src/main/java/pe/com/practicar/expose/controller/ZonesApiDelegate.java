@@ -12,8 +12,9 @@ public interface ZonesApiDelegate {
 
     Mono<ZonePaginateResponse> obtenerZonas(Integer paginaActual, Integer tamanioPagina, ServerWebExchange exchange);
     
-    Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina, 
-                                                       String provincia, String distrito, Integer nivelSeguridad, 
+    Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina,
+                                                       String provincia, String distrito, Integer nivelSeguridad,
+                                                       String ciudad, String minRisk, String maxRisk,
                                                        ServerWebExchange exchange);
     
     Mono<ZoneResponse> obtenerZonaPorId(Integer codigoZona, ServerWebExchange exchange);

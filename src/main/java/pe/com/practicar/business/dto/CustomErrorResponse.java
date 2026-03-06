@@ -1,6 +1,7 @@
 package pe.com.practicar.business.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,5 +23,6 @@ public class CustomErrorResponse {
         private String tipo;
         private String codigo;
         private String mensaje;
+        private List<String> detalles;
     }
 }

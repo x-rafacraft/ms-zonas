@@ -30,9 +30,16 @@ public class ZonesApiController implements ZonesApi {
             String provincia,
             String distrito,
             Integer nivelSeguridad,
+            String ciudad,
+            String minRisk,
+            String maxRisk,
             final ServerWebExchange exchange) {
-        if (provincia != null || distrito != null || nivelSeguridad != null) {
-            return getDelegate().obtenerZonasConFiltros(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad, exchange);
+        boolean tieneFiltroCombinado = ciudad != null || minRisk != null || maxRisk != null;
+        boolean tieneFiltroExistente = provincia != null || distrito != null || nivelSeguridad != null;
+        if (tieneFiltroCombinado || tieneFiltroExistente) {
+            return getDelegate().obtenerZonasConFiltros(
+                    paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad,
+                    ciudad, minRisk, maxRisk, exchange);
         }
         return getDelegate().obtenerZonas(paginaActual, tamanioPagina, exchange);
     }

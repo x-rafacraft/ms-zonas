@@ -18,6 +18,7 @@ public enum BusinessErrorCodes {
   // Errores de validación
   INVALID_COORDINATES("010", "INVALID_COORDINATES", "Las coordenadas no son válidas"),
   INVALID_RISK_LEVEL("011", "INVALID_RISK_LEVEL", "El nivel de riesgo debe estar entre 1 y 10"),
+  INVALID_RISK_RANGE("018", "INVALID_RISK_RANGE", "El rango de riesgo especificado no es válido"),
   INVALID_PAGINATION("012", "INVALID_PAGINATION", "Los parámetros de paginación no son válidos"),
   REQUIRED_FIELD_MISSING("013", "REQUIRED_FIELD_MISSING", "Campo requerido faltante"),
   INVALID_REQUEST_FORMAT("014", "INVALID_REQUEST_FORMAT", "Formato de solicitud inválido"),

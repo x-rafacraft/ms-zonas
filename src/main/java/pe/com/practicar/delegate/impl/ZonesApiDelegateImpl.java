@@ -5,11 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import pe.com.practicar.business.ZonesService;
+import pe.com.practicar.business.exception.BusinessErrorCodes;
+import pe.com.practicar.business.exception.BusinessException;
 import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.expose.controller.ZonesApiDelegate;
 import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
 import pe.com.practicar.expose.schema.ZoneResponse;
+import pe.com.practicar.business.model.RiskLevel;
 import pe.com.practicar.expose.schema.ZoneSummaryByLevelResponse;
 import pe.com.practicar.expose.schema.ZoneSummaryResponse;
 import pe.com.practicar.expose.schema.ZoneUpdateRequest;
@@ -46,25 +49,42 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
     }
 
     @Override
-    public Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina, 
-                                                             String provincia, String distrito, Integer nivelSeguridad, 
+    public Mono<ZonePaginateResponse> obtenerZonasConFiltros(Integer paginaActual, Integer tamanioPagina,
+                                                             String provincia, String distrito, Integer nivelSeguridad,
+                                                             String ciudad, String minRiskStr, String maxRiskStr,
                                                              ServerWebExchange exchange) {
-        return zonesService.zonesListWithFilters(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad)
+        RiskLevel minRisk = parseRiskLevel(minRiskStr);
+        RiskLevel maxRisk = parseRiskLevel(maxRiskStr);
+        return zonesService.zonesListWithFilters(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad, ciudad, minRisk, maxRisk)
                 .map(zonesPaginatedDto -> {
                     List<ZoneResponse> zoneResponses = zonesPaginatedDto.getZones().stream()
                             .map(zoneMapper::zoneDtoToResponse)
                             .toList();
-                    
+
                     boolean existeSiguientePagina = zoneResponses.size() == tamanioPagina;
-                    
+
                     ZonePaginateResponse response = new ZonePaginateResponse();
                     response.setZone(zoneResponses);
                     response.setPaginaActual(paginaActual);
                     response.setTamanioPagina(tamanioPagina);
                     response.setExisteSiguientePagina(existeSiguientePagina);
-                    
+
                     return response;
                 });
+    }
+
+    private RiskLevel parseRiskLevel(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return RiskLevel.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw BusinessException.builder()
+                    .httpStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
+                    .code(BusinessErrorCodes.INVALID_RISK_LEVEL.getCode())
+                    .type(BusinessErrorCodes.INVALID_RISK_LEVEL.getTitle())
+                    .message("Valor de riesgo inválido: '" + value + "'. Los valores permitidos son: LOW, MEDIUM, HIGH.")
+                    .build();
+        }
     }
 
     @Override

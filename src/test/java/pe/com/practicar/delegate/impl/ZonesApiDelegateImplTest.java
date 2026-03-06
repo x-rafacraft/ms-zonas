@@ -83,12 +83,12 @@ class ZonesApiDelegateImplTest {
         response.setCodzona(1);
         response.setNombre("Zona Test");
         
-        when(zonesService.zonesListWithFilters(anyInt(), anyInt(), any(), any(), anyInt()))
+        when(zonesService.zonesListWithFilters(anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Mono.just(paginatedDto));
         when(zoneMapper.zoneDtoToResponse(any())).thenReturn(response);
 
         // When
-        Mono<?> result = zonesApiDelegate.obtenerZonasConFiltros(1, 10, "Lima", "Miraflores", 4, null);
+        Mono<?> result = zonesApiDelegate.obtenerZonasConFiltros(1, 10, "Lima", "Miraflores", 4, null, null, null, null);
 
         // Then
         StepVerifier.create(result)
