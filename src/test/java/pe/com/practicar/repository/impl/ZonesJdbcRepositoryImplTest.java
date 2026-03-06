@@ -173,7 +173,7 @@ class ZonesJdbcRepositoryImplTest {
         )).thenReturn(zones);
 
         // When
-        List<Zones> result = repository.getZonesWithFilters(1, 10, "Lima", "Miraflores", 4);
+        List<Zones> result = repository.getZonesWithFilters(1, 10, "Lima", "Miraflores", 4, null, null, null);
 
         // Then
         assertNotNull(result);

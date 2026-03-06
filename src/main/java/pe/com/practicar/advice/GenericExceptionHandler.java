@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +17,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.server.ServerWebInputException;
 import pe.com.practicar.business.dto.CustomErrorResponse;
 import pe.com.practicar.business.exception.BusinessErrorCodes;
+import pe.com.practicar.business.exception.BusinessException;
 import pe.com.practicar.util.Constants;
 
 import java.sql.SQLException;
@@ -105,6 +107,26 @@ public class GenericExceptionHandler {
             return text.substring(startIdx, endIdx);
         }
         return null;
+    }
+
+    /**
+     * Maneja BusinessException, respetando el HttpStatus definido en la excepción.
+     * Tiene prioridad sobre handleRuntimeException por ser más específico.
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<CustomErrorResponse> handleBusinessException(BusinessException ex) {
+        log.error("Business exception [{}]: {}", ex.getCode(), ex.getMessage());
+
+        CustomErrorResponse.ErrorDetail errorDetail = CustomErrorResponse.ErrorDetail.builder()
+                .tipo("FUNCIONAL")
+                .codigo(ex.getCode())
+                .mensaje(ex.getMessage())
+                .detalles(ex.getDetails().isEmpty() ? null : ex.getDetails())
+                .build();
+
+        return ResponseEntity
+                .status(ex.getHttpStatus())
+                .body(CustomErrorResponse.builder().error(errorDetail).build());
     }
 
     /**

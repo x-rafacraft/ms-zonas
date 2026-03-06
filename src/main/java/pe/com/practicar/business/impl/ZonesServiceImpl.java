@@ -15,6 +15,7 @@ import pe.com.practicar.business.validator.PaginationValidator;
 import pe.com.practicar.business.validator.ZoneCreateRequestValidator;
 import pe.com.practicar.business.validator.ZoneIdValidator;
 import pe.com.practicar.business.validator.ZoneUpdateRequestValidator;
+import pe.com.practicar.business.model.RiskLevel;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.mapper.ZoneMapper;
@@ -47,9 +48,12 @@ public class ZonesServiceImpl implements ZonesService {
     }
 
     @Override
-    public Mono<ZonesPaginatedDto> zonesListWithFilters(Integer currentPage, Integer pageSize, String province, String district, Integer securityLevel) {
-        return PaginationValidator.validatePaginationWithFilters(currentPage, pageSize, province, district, securityLevel)
-                .flatMap(valid -> Mono.fromCallable(() -> zonesJdbcRepository.getZonesWithFilters(currentPage, pageSize, province, district, securityLevel))
+    public Mono<ZonesPaginatedDto> zonesListWithFilters(Integer currentPage, Integer pageSize,
+                                                        String province, String district, Integer securityLevel,
+                                                        String city, RiskLevel minRisk, RiskLevel maxRisk) {
+        return PaginationValidator.validatePaginationWithFilters(currentPage, pageSize, province, district, securityLevel, minRisk, maxRisk)
+                .flatMap(valid -> Mono.fromCallable(() ->
+                        zonesJdbcRepository.getZonesWithFilters(currentPage, pageSize, province, district, securityLevel, city, minRisk, maxRisk))
                         .subscribeOn(Schedulers.boundedElastic()))
                 .map(zones -> zones.stream()
                         .map(zoneMapper::convertToZoneResponse)

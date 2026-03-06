@@ -8,7 +8,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import pe.com.practicar.business.dto.ZonesDto;
+import pe.com.practicar.business.dto.ZonesPaginatedDto;
 import pe.com.practicar.business.exception.BusinessException;
+import pe.com.practicar.business.model.RiskLevel;
 import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
@@ -73,12 +75,12 @@ class ZonesServiceImplTest {
     void zonesListWithFilters_DeberiaRetornarListaFiltrada() {
         // Given
         List<Zones> mockZones = Arrays.asList(new Zones(), new Zones());
-        when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), 
-                any(), any(), anyInt()))
+        when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(),
+                any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockZones);
 
         // When
-        Mono<?> result = zonesService.zonesListWithFilters(1, 10, "Lima", "Miraflores", 4);
+        Mono<?> result = zonesService.zonesListWithFilters(1, 10, "Lima", "Miraflores", 4, null, null, null);
 
         // Then
         StepVerifier.create(result)
@@ -375,15 +377,15 @@ class ZonesServiceImplTest {
     @Test
     void zonesListWithFilters_ConListaVacia_DeberiaRetornarPaginadoVacio() {
         // Given
-        when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), any(), any(), any()))
+        when(zonesJdbcRepository.getZonesWithFilters(anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Collections.emptyList());
 
         // When & Then
-        StepVerifier.create(zonesService.zonesListWithFilters(1, 10, null, null, null))
+        StepVerifier.create(zonesService.zonesListWithFilters(1, 10, null, null, null, null, null, null))
                 .expectNextMatches(result -> {
                     var paginated = (pe.com.practicar.business.dto.ZonesPaginatedDto) result;
-                    return paginated.getZones().isEmpty() && 
-                           paginated.getCurrentPage() == 1 && 
+                    return paginated.getZones().isEmpty() &&
+                           paginated.getCurrentPage() == 1 &&
                            paginated.getPageSize() == 10;
                 })
                 .verifyComplete();
@@ -404,6 +406,99 @@ class ZonesServiceImplTest {
                            paginated.getPageSize() == 10;
                 })
                 .verifyComplete();
+    }
+
+  
+    // Caso 1: filtros válidos (ciudad=Lima, minRisk=MEDIUM, maxRisk=HIGH)
+    @Test
+    void zonesListWithFilters_ConCiudadYRangoValido_DeberiaRetornarResultados() {
+        // Given
+        List<Zones> mockZones = Arrays.asList(buildZone(1), buildZone(2), buildZone(3));
+        when(zonesJdbcRepository.getZonesWithFilters(
+                anyInt(), anyInt(),
+                isNull(), isNull(), isNull(),
+                eq("Lima"), eq(RiskLevel.MEDIUM), eq(RiskLevel.HIGH)))
+                .thenReturn(mockZones);
+
+        // When
+        Mono<ZonesPaginatedDto> result = zonesService.zonesListWithFilters(
+                1, 10, null, null, null, "Lima", RiskLevel.MEDIUM, RiskLevel.HIGH);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextMatches(paginated ->
+                        paginated.getZones().size() == 3
+                        && paginated.getCurrentPage() == 1
+                        && paginated.getPageSize() == 10)
+                .verifyComplete();
+    }
+
+    // Caso 2: sin filtros → devuelve todas las zonas
+    @Test
+    void zonesList_SinFiltros_DeberiaRetornarTodasLasZonas() {
+        // Given
+        List<Zones> todasLasZonas = Arrays.asList(
+                buildZone(1), buildZone(2), buildZone(3), buildZone(4), buildZone(5));
+        when(zonesJdbcRepository.getZonesPaginated(anyInt(), anyInt()))
+                .thenReturn(todasLasZonas);
+
+        // When
+        Mono<ZonesPaginatedDto> result = zonesService.zonesList(1, 10);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextMatches(paginated ->
+                        paginated.getZones().size() == 5
+                        && paginated.getCurrentPage() == 1)
+                .verifyComplete();
+    }
+
+    // Caso 3: rango inválido (minRisk=HIGH > maxRisk=LOW) → HTTP 400 INVALID_RISK_RANGE
+    @Test
+    void zonesListWithFilters_ConRangoInvalido_DeberiaRetornar400() {
+        // When
+        Mono<ZonesPaginatedDto> result = zonesService.zonesListWithFilters(
+                1, 10, null, null, null, null, RiskLevel.HIGH, RiskLevel.LOW);
+
+        // Then
+        StepVerifier.create(result)
+                .expectErrorMatches(error ->
+                        error instanceof BusinessException businessEx
+                        && "018".equals(businessEx.getCode())
+                        && "INVALID_RISK_RANGE".equals(businessEx.getType())
+                        && businessEx.getHttpStatus().value() == 400
+                        && businessEx.getDetails().stream()
+                                .anyMatch(d -> d.contains("minRisk=HIGH") && d.contains("maxRisk=LOW")))
+                .verify();
+    }
+
+    // Extra: rango igual MEDIUM=MEDIUM es válido (caso borde)
+    @Test
+    void zonesListWithFilters_ConRangoIgual_DeberiaSerValido() {
+        // Given
+        when(zonesJdbcRepository.getZonesWithFilters(
+                anyInt(), anyInt(),
+                any(), any(), any(), any(),
+                eq(RiskLevel.MEDIUM), eq(RiskLevel.MEDIUM)))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        Mono<ZonesPaginatedDto> result = zonesService.zonesListWithFilters(
+                1, 10, null, null, null, null, RiskLevel.MEDIUM, RiskLevel.MEDIUM);
+
+        // Then
+        StepVerifier.create(result)
+                .expectNextMatches(paginated -> paginated.getZones().isEmpty())
+                .verifyComplete();
+    }
+
+    private Zones buildZone(int id) {
+        Zones z = new Zones();
+        z.setId(id);
+        z.setName("Zona " + id);
+        z.setProvince("Lima");
+        z.setSecurityLevel(5);
+        return z;
     }
 
     // Helper methods

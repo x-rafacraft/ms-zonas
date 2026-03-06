@@ -4,8 +4,11 @@ import lombok.experimental.UtilityClass;
 import org.springframework.http.HttpStatus;
 import pe.com.practicar.business.exception.BusinessErrorCodes;
 import pe.com.practicar.business.exception.BusinessException;
+import pe.com.practicar.business.model.RiskLevel;
 import pe.com.practicar.util.Constants;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @UtilityClass
 public class PaginationValidator {
@@ -60,21 +63,54 @@ public class PaginationValidator {
     }
 
     /**
-     * Valida los parámetros de paginación con filtros opcionales.
+     * Valida los parámetros de paginación con filtros extendidos (ciudad, rango de riesgo).
      *
      * @param currentPage Página actual
      * @param pageSize Tamaño de página
      * @param province Provincia (opcional)
      * @param district Distrito (opcional)
-     * @param securityLevel Nivel de seguridad (opcional)
+     * @param securityLevel Nivel de seguridad exacto (opcional)
+     * @param minRisk Nivel de riesgo mínimo como enum (opcional)
+     * @param maxRisk Nivel de riesgo máximo como enum (opcional)
      * @return Mono con true si es válido
      */
     public static Mono<Boolean> validatePaginationWithFilters(Integer currentPage, Integer pageSize,
-                                                               String province, String district, Integer securityLevel) {
+                                                               String province, String district,
+                                                               Integer securityLevel,
+                                                               RiskLevel minRisk, RiskLevel maxRisk) {
         return validatePagination(currentPage, pageSize)
                 .flatMap(valid -> validateStringFilter(province, "provincia"))
                 .flatMap(valid -> validateStringFilter(district, "distrito"))
-                .flatMap(valid -> validateRiskLevel(securityLevel));
+                .flatMap(valid -> validateRiskLevel(securityLevel))
+                .flatMap(valid -> validateRiskRange(minRisk, maxRisk));
+    }
+
+    /**
+     * Sobrecarga sin rango de riesgo para compatibilidad.
+     */
+    public static Mono<Boolean> validatePaginationWithFilters(Integer currentPage, Integer pageSize,
+                                                               String province, String district, Integer securityLevel) {
+        return validatePaginationWithFilters(currentPage, pageSize, province, district, securityLevel, null, null);
+    }
+
+    /**
+     * Valida que minRisk no sea mayor que maxRisk.
+     *
+     * @param minRisk Nivel de riesgo mínimo
+     * @param maxRisk Nivel de riesgo máximo
+     * @return Mono con true si el rango es válido
+     */
+    public static Mono<Boolean> validateRiskRange(RiskLevel minRisk, RiskLevel maxRisk) {
+        if (minRisk != null && maxRisk != null && minRisk.ordinal() > maxRisk.ordinal()) {
+            return Mono.error(BusinessException.builder()
+                    .httpStatus(HttpStatus.BAD_REQUEST)
+                    .code(BusinessErrorCodes.INVALID_RISK_RANGE.getCode())
+                    .type(BusinessErrorCodes.INVALID_RISK_RANGE.getTitle())
+                    .message("El rango de riesgo especificado no es válido")
+                    .details(List.of("minRisk=" + minRisk.name() + ", maxRisk=" + maxRisk.name()))
+                    .build());
+        }
+        return Mono.just(true);
     }
 
     private static Mono<Boolean> validateStringFilter(String filter, String paramName) {
