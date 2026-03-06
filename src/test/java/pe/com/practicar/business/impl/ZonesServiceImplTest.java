@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.exception.BusinessException;
-import pe.com.practicar.delegate.mappers.ZoneMapper;
+import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.ZonesJdbcRepository;
@@ -427,15 +427,15 @@ class ZonesServiceImplTest {
     private ZonesDto createMockDto() {
         return ZonesDto.builder()
                 .zoneCode(1)
-                .names("Zona Test")
-                .districts("Miraflores")
-                .provinces("Lima")
-                .regions("Lima")
-                .countrys("Peru")
-                .latitudes(-12.1191)
-                .longitudes(-77.0292)
-                .securityLevels(5)
-                .actives(true)
+                .name("Zona Test")
+                .district("Miraflores")
+                .province("Lima")
+                .region("Lima")
+                .country("Peru")
+                .latitude(-12.1191)
+                .longitude(-77.0292)
+                .securityLevel(5)
+                .active(true)
                 .build();
     }
 

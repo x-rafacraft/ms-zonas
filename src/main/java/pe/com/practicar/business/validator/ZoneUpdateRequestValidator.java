@@ -7,7 +7,6 @@ import pe.com.practicar.business.exception.BusinessException;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.util.Constants;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +85,6 @@ public class ZoneUpdateRequestValidator {
             }
 
             return errors;
-        }).subscribeOn(Schedulers.boundedElastic());
+        });
     }
 }

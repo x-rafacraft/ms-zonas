@@ -20,16 +20,12 @@ public class ZoneIdValidator {
      */
     public static Mono<Boolean> validate(Integer zoneId) {
         if (zoneId == null) {
-            String message = Constants.RESPONSE_MESSAGE_ERROR_FORMAT_PARAMS
-                    + "codigoZona es requerido.";
             return Mono.error(BusinessException.createException(
                     HttpStatus.BAD_REQUEST,
                     BusinessErrorCodes.REQUIRED_FIELD_MISSING));
         }
 
         if (zoneId < MIN_ZONE_ID) {
-            String message = Constants.RESPONSE_MESSAGE_ERROR_FORMAT_PARAMS
-                    + "codigoZona debe ser mayor o igual a " + MIN_ZONE_ID + ".";
             return Mono.error(BusinessException.createException(
                     HttpStatus.BAD_REQUEST,
                     BusinessErrorCodes.REQUIRED_FIELD_MISSING));

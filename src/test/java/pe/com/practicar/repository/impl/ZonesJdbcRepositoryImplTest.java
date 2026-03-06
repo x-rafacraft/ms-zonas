@@ -15,6 +15,7 @@ import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
 import pe.com.practicar.repository.model.Zones;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -110,12 +111,6 @@ class ZonesJdbcRepositoryImplTest {
         updatedZone.setId(1);
         updatedZone.setLatitude(-12.0464);
 
-        when(namedParameterJdbcTemplate.queryForObject(
-                anyString(),
-                any(MapSqlParameterSource.class),
-                eq(Integer.class)
-        )).thenReturn(1);
-
         when(namedParameterJdbcTemplate.update(
                 anyString(),
                 any(MapSqlParameterSource.class)
@@ -137,19 +132,27 @@ class ZonesJdbcRepositoryImplTest {
     }
 
     @Test
-    void updateZone_ZonaNoExiste_DeberiaLanzarExcepcion() {
+    void updateZone_ZonaNoExiste_DeberiaRetornarEmpty() {
         // Given
         ZoneDatosUpdateRequest request = new ZoneDatosUpdateRequest();
         request.setLatitud(-12.0464);
 
-        when(namedParameterJdbcTemplate.queryForObject(
+        when(namedParameterJdbcTemplate.update(
                 anyString(),
-                any(MapSqlParameterSource.class),
-                eq(Integer.class)
+                any(MapSqlParameterSource.class)
         )).thenReturn(0);
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> repository.updateZone(999, request));
+        when(namedParameterJdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                any(BeanPropertyRowMapper.class)
+        )).thenReturn(Collections.emptyList());
+
+        // When
+        Optional<Zones> result = repository.updateZone(999, request);
+
+        // Then
+        assertTrue(result.isEmpty());
     }
 
     @Test

@@ -7,7 +7,6 @@ import pe.com.practicar.business.exception.BusinessException;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.util.Constants;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +26,6 @@ public class ZoneCreateRequestValidator {
         return validateRequiredFields(request)
                 .flatMap(errors -> {
                     if (!errors.isEmpty()) {
-                        String message = FORMAT_MESSAGE + String.join(", ", errors);
                         return Mono.error(BusinessException.createException(
                                 HttpStatus.BAD_REQUEST,
                                 BusinessErrorCodes.REQUIRED_FIELD_MISSING,
@@ -37,7 +35,6 @@ public class ZoneCreateRequestValidator {
                 })
                 .flatMap(errors -> {
                     if (!errors.isEmpty()) {
-                        String message = FORMAT_MESSAGE + String.join(", ", errors);
                         return Mono.error(BusinessException.createException(
                                 HttpStatus.BAD_REQUEST,
                                 BusinessErrorCodes.REQUIRED_FIELD_MISSING,
@@ -52,10 +49,6 @@ public class ZoneCreateRequestValidator {
             List<String> errors = new ArrayList<>();
 
             if (request.getCodzona() == null) {
-                errors.add("codzona es requerido");
-            }
-
-            if (request.getNombre() == null || request.getNombre().isEmpty()) {
                 errors.add("nombre es requerido");
             }
 
@@ -92,7 +85,7 @@ public class ZoneCreateRequestValidator {
             }
 
             return errors;
-        }).subscribeOn(Schedulers.boundedElastic());
+        });
     }
 
     private static Mono<List<String>> validateFieldFormats(ZoneDatosCreateRequest request) {
@@ -174,6 +167,6 @@ public class ZoneCreateRequestValidator {
             }
 
             return errors;
-        }).subscribeOn(Schedulers.boundedElastic());
+        });
     }
 }
