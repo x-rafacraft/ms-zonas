@@ -1,15 +1,30 @@
-package pe.com.practicar.delegate.builder;
+package pe.com.practicar.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.expose.schema.ZoneResponse;
+import pe.com.practicar.repository.model.Zones;
 
 @Mapper(componentModel = "spring")
-public interface ZonesMapper {
+public interface ZoneMapper {
 
-    ZonesMapper INSTANCE = Mappers.getMapper(ZonesMapper.class);
+    @Mapping(source = "id", target = "zoneCode")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "district", target = "district")
+    @Mapping(source = "province", target = "province")
+    @Mapping(source = "region", target = "region")
+    @Mapping(source = "country", target = "country")
+    @Mapping(source = "latitude", target = "latitude")
+    @Mapping(source = "longitude", target = "longitude")
+    @Mapping(source = "securityLevel", target = "securityLevel")
+    @Mapping(source = "description", target = "description")
+    @Mapping(source = "active", target = "active")
+    @Mapping(source = "createdBy", target = "createdBy")
+    @Mapping(source = "updatedBy", target = "updatedBy")
+    @Mapping(source = "createdAt", target = "createdAt")
+    @Mapping(source = "updatedAt", target = "updatedAt")
+    ZonesDto convertToZoneResponse(Zones zone);
 
     @Mapping(target = "codzona", source = "zoneCode")
     @Mapping(target = "nombre", source = "name")

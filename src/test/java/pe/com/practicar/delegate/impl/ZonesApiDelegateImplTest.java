@@ -8,7 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import pe.com.practicar.business.ZonesService;
 import pe.com.practicar.business.dto.ZonesDto;
 import pe.com.practicar.business.dto.ZonesPaginatedDto;
-import pe.com.practicar.delegate.builder.ZonesMapper;
+import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneResponse;
@@ -30,7 +30,7 @@ class ZonesApiDelegateImplTest {
     private ZonesService zonesService;
 
     @Mock
-    private ZonesMapper zonesMapper;
+    private ZoneMapper zoneMapper;
 
     @InjectMocks
     private ZonesApiDelegateImpl zonesApiDelegate;
@@ -40,7 +40,7 @@ class ZonesApiDelegateImplTest {
         // Given
         ZonesDto dto = ZonesDto.builder()
                 .zoneCode(1)
-                .names("Zona Test")
+                .name("Zona Test")
                 .build();
         
         ZonesPaginatedDto paginatedDto = ZonesPaginatedDto.builder()
@@ -54,7 +54,7 @@ class ZonesApiDelegateImplTest {
         response.setNombre("Zona Test");
         
         when(zonesService.zonesList(anyInt(), anyInt())).thenReturn(Mono.just(paginatedDto));
-        when(zonesMapper.zoneDtoToResponse(any())).thenReturn(response);
+        when(zoneMapper.zoneDtoToResponse(any())).thenReturn(response);
 
         // When
         Mono<?> result = zonesApiDelegate.obtenerZonas(1, 10, null);
@@ -70,7 +70,7 @@ class ZonesApiDelegateImplTest {
         // Given
         ZonesDto dto = ZonesDto.builder()
                 .zoneCode(1)
-                .names("Zona Test")
+                .name("Zona Test")
                 .build();
         
         ZonesPaginatedDto paginatedDto = ZonesPaginatedDto.builder()
@@ -85,7 +85,7 @@ class ZonesApiDelegateImplTest {
         
         when(zonesService.zonesListWithFilters(anyInt(), anyInt(), any(), any(), anyInt()))
                 .thenReturn(Mono.just(paginatedDto));
-        when(zonesMapper.zoneDtoToResponse(any())).thenReturn(response);
+        when(zoneMapper.zoneDtoToResponse(any())).thenReturn(response);
 
         // When
         Mono<?> result = zonesApiDelegate.obtenerZonasConFiltros(1, 10, "Lima", "Miraflores", 4, null);
@@ -107,14 +107,14 @@ class ZonesApiDelegateImplTest {
         
         ZonesDto dto = ZonesDto.builder()
                 .zoneCode(1)
-                .names("Nueva Zona")
+                .name("Nueva Zona")
                 .build();
         
         ZoneResponse response = new ZoneResponse();
         response.setNombre("Nueva Zona");
         
         when(zonesService.createZone(any())).thenReturn(Mono.just(dto));
-        when(zonesMapper.zoneDtoToResponse(any())).thenReturn(response);
+        when(zoneMapper.zoneDtoToResponse(any())).thenReturn(response);
 
         // When
         Mono<ZoneResponse> result = zonesApiDelegate.crearZona(request, null);
@@ -136,14 +136,14 @@ class ZonesApiDelegateImplTest {
         
         ZonesDto dto = ZonesDto.builder()
                 .zoneCode(1)
-                .latitudes(-12.0464)
+                .latitude(-12.0464)
                 .build();
         
         ZoneResponse response = new ZoneResponse();
         response.setLatitud(-12.0464);
         
         when(zonesService.updateZone(anyInt(), any())).thenReturn(Mono.just(dto));
-        when(zonesMapper.zoneDtoToResponse(any())).thenReturn(response);
+        when(zoneMapper.zoneDtoToResponse(any())).thenReturn(response);
 
         // When
         Mono<ZoneResponse> result = zonesApiDelegate.actualizarZona(1, request, null);

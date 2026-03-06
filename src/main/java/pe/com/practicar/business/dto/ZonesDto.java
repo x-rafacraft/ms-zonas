@@ -17,31 +17,31 @@ public class ZonesDto implements Serializable {
 
     private Integer zoneCode;
 
-    private String names;
+    private String name;
 
-    private String districts;
+    private String district;
 
-    private String provinces;
+    private String province;
 
-    private String regions;
+    private String region;
 
-    private String countrys;
+    private String country;
 
-    private Double latitudes;
+    private Double latitude;
 
-    private Double longitudes;
+    private Double longitude;
 
-    private Integer securityLevels;
+    private Integer securityLevel;
 
-    private String descriptions;
+    private String description;
 
-    private Boolean actives;
+    private Boolean active;
 
-    private String createdBys;
+    private String createdBy;
 
-    private String updatedBys;
+    private String updatedBy;
 
-    private LocalDateTime createdAts;
+    private LocalDateTime createdAt;
 
-    private LocalDateTime updatedAts;
+    private LocalDateTime updatedAt;
 }

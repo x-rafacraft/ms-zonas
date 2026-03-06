@@ -17,7 +17,7 @@ import pe.com.practicar.business.validator.ZoneIdValidator;
 import pe.com.practicar.business.validator.ZoneUpdateRequestValidator;
 import pe.com.practicar.expose.schema.ZoneDatosCreateRequest;
 import pe.com.practicar.expose.schema.ZoneDatosUpdateRequest;
-import pe.com.practicar.delegate.mappers.ZoneMapper;
+import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.repository.ZonesJdbcRepository;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -250,8 +250,8 @@ public class ZonesServiceImpl implements ZonesService {
             log.error("Error al obtener resumen de zonas", e);
             return Mono.error(BusinessException.builder()
                     .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .code(BusinessErrorCodes.ZONE_NOT_FOUND.getCode())
-                    .type(BusinessErrorCodes.ZONE_NOT_FOUND.getTitle())
+                    .code(BusinessErrorCodes.DATABASE_ERROR.getCode())
+                    .type(BusinessErrorCodes.DATABASE_ERROR.getTitle())
                     .message("Error al obtener el resumen de zonas")
                     .build());
         });

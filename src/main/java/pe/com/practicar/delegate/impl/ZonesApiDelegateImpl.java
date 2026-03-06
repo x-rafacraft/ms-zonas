@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import pe.com.practicar.business.ZonesService;
-import pe.com.practicar.delegate.builder.ZonesMapper;
+import pe.com.practicar.mapper.ZoneMapper;
 import pe.com.practicar.expose.controller.ZonesApiDelegate;
 import pe.com.practicar.expose.schema.ZoneCreateRequest;
 import pe.com.practicar.expose.schema.ZonePaginateResponse;
@@ -23,14 +23,14 @@ import java.util.List;
 public class ZonesApiDelegateImpl implements ZonesApiDelegate {
 
     private final ZonesService zonesService;
-    private final ZonesMapper zonesMapper;
+    private final ZoneMapper zoneMapper;
 
     @Override
     public Mono<ZonePaginateResponse> obtenerZonas(Integer paginaActual, Integer tamanioPagina, ServerWebExchange exchange) {
         return zonesService.zonesList(paginaActual, tamanioPagina)
                 .map(zonesPaginatedDto -> {
                     List<ZoneResponse> zoneResponses = zonesPaginatedDto.getZones().stream()
-                            .map(zonesMapper::zoneDtoToResponse)
+                            .map(zoneMapper::zoneDtoToResponse)
                             .toList();
                     
                     boolean existeSiguientePagina = zoneResponses.size() == tamanioPagina;
@@ -52,7 +52,7 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
         return zonesService.zonesListWithFilters(paginaActual, tamanioPagina, provincia, distrito, nivelSeguridad)
                 .map(zonesPaginatedDto -> {
                     List<ZoneResponse> zoneResponses = zonesPaginatedDto.getZones().stream()
-                            .map(zonesMapper::zoneDtoToResponse)
+                            .map(zoneMapper::zoneDtoToResponse)
                             .toList();
                     
                     boolean existeSiguientePagina = zoneResponses.size() == tamanioPagina;
@@ -70,25 +70,25 @@ public class ZonesApiDelegateImpl implements ZonesApiDelegate {
     @Override
     public Mono<ZoneResponse> obtenerZonaPorId(Integer codigoZona, ServerWebExchange exchange) {
         return zonesService.getZoneById(codigoZona)
-                .map(zonesMapper::zoneDtoToResponse);
+                .map(zoneMapper::zoneDtoToResponse);
     }
 
     @Override
     public Mono<ZoneResponse> crearZona(ZoneCreateRequest request, ServerWebExchange exchange) {
         return zonesService.createZone(request.getDatos())
-                .map(zonesMapper::zoneDtoToResponse);
+                .map(zoneMapper::zoneDtoToResponse);
     }
 
     @Override
     public Mono<ZoneResponse> actualizarZona(Integer codigoZona, ZoneUpdateRequest request, ServerWebExchange exchange) {
         return zonesService.updateZone(codigoZona, request.getDatos())
-                .map(zonesMapper::zoneDtoToResponse);
+                .map(zoneMapper::zoneDtoToResponse);
     }
 
     @Override
     public Mono<ZoneResponse> reemplazarZona(Integer codigoZona, ZoneCreateRequest request, ServerWebExchange exchange) {
         return zonesService.replaceZone(codigoZona, request.getDatos())
-                .map(zonesMapper::zoneDtoToResponse);
+                .map(zoneMapper::zoneDtoToResponse);
     }
 
     @Override
