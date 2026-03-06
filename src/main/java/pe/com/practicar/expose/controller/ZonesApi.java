@@ -24,7 +24,7 @@ public interface ZonesApi {
             @RequestParam(required = false) String provincia,
             @RequestParam(required = false) String distrito,
             @RequestParam(required = false) Integer nivelSeguridad,
-            @RequestParam(required = false) String ciudad,
+            @RequestParam(value = "city", required = false) String ciudad,
             @RequestParam(required = false) String minRisk,
             @RequestParam(required = false) String maxRisk,
             final ServerWebExchange exchange);
